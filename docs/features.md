@@ -98,7 +98,7 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 - **Tồn kho:** thêm/sửa không được vượt `stock`, lỗi có mã (`INSUFFICIENT_STOCK`, `OUT_OF_STOCK`...) và thông báo tiếng Việt. Chỉ kiểm tra, không giữ chỗ; trừ kho nằm ở bước đặt hàng.
 - **Cảnh báo:** giỏ trả kèm cảnh báo khi giá đã đổi so với lúc thêm (`CartItem.priceAtAdd`), tồn kho giảm dưới số lượng, hết hàng hoặc sản phẩm ngừng bán.
 - **API:** `GET /api/cart`, `POST /api/cart/items`, `PATCH|DELETE /api/cart/items/[variantId]`.
-- **Giao diện:** TanStack Query với optimistic update (`src/hooks/use-cart.ts`), cart drawer mở khi bấm icon giỏ và sau khi thêm sản phẩm, trang `/cart`. Ô nhập mã giảm giá dùng được (xem mục Voucher bên dưới), nút "Tiến hành thanh toán" sang `/checkout`.
+- **Giao diện:** TanStack Query với optimistic update (`src/hooks/use-cart.ts`), cart drawer chỉ mở khi khách bấm icon giỏ (thêm sản phẩm chỉ hiện toast và hiệu ứng nảy ở icon, không tự mở), trang `/cart`. Ô nhập mã giảm giá dùng được (xem mục Voucher bên dưới), nút "Tiến hành thanh toán" sang `/checkout`.
 
 ## Thanh toán & đơn hàng
 

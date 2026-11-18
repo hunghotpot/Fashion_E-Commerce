@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { summarizeCart, type CartLine, type CartView } from "@/lib/cart"
-import { useCartUi } from "@/stores/cart-ui"
 
 export const CART_KEY = ["cart"] as const
 
@@ -78,8 +77,8 @@ export function useAddToCart() {
       return summarizeCart(items)
     },
     onSuccess: () => {
+      // Không tự mở ngăn kéo giỏ: khách bấm icon giỏ khi muốn xem. Toast và hiệu ứng nảy ở icon báo đã thêm.
       toast.success("Đã thêm vào giỏ hàng")
-      useCartUi.getState().setOpen(true)
     },
   })
 }

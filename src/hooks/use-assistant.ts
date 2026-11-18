@@ -113,7 +113,6 @@ export function useAssistantChat() {
       mark("added")
       say("Mình đã thêm vào giỏ hàng cho bạn rồi nhé.")
       await queryClient.invalidateQueries({ queryKey: CART_KEY })
-      useCartUi.getState().setOpen(true)
       if (window.matchMedia("(max-width: 639px)").matches) useAssistantUi.getState().setOpen(false)
     },
     [queryClient],

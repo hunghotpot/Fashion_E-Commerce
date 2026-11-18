@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { Hero } from "@/components/home/hero"
+import { BackToTop } from "@/components/layout/back-to-top"
 import { Lookbook } from "@/components/home/lookbook"
 import { CategoryGrid, CategoryGridSkeleton } from "@/components/product/category-grid"
 import {
@@ -32,6 +33,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-16 md:space-y-24">
       <Hero freeShippingFrom={defaultFreeShippingThreshold(settings)} />
+      <BackToTop />
       <Suspense fallback={<CategoryGridSkeleton />}>
         <CategoryGrid />
       </Suspense>

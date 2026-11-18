@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn"
 import { useCart } from "@/hooks/use-cart"
 import { useCartUi } from "@/stores/cart-ui"
 
-// Icon giỏ ở header + badge (chỉ hiện khi đã đăng nhập). Bấm mở drawer (Ctrl/Cmd+click hoặc khi chưa có JS vẫn đi tới /cart).
+// Icon giỏ ở header + badge (chỉ hiện khi đã đăng nhập). Bấm mở ngăn kéo giỏ (Ctrl/Cmd+click hoặc khi chưa có JS vẫn đi tới /cart). Ngăn kéo KHÔNG tự mở khi thêm hàng.
 export function CartButton() {
   const { data } = useCart()
   const setOpen = useCartUi((s) => s.setOpen)
