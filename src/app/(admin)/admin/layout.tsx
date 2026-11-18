@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="min-h-screen bg-background p-3 sm:p-6">
       <SkipLink />
       <div className="mx-auto max-w-[1440px] space-y-6 rounded-3xl bg-card p-4 sm:space-y-8 sm:p-8">
-        <AdminHeader user={{ name: admin.name }} notifications={notifications} />
+        <AdminHeader user={{ name: admin.name, avatar: admin.avatar }} notifications={notifications} />
         <AdminPageTitle />
         <AdminMobileNav pendingOrders={pendingOrders} />
         <div className="grid gap-6 lg:grid-cols-[270px_minmax(0,1fr)]">

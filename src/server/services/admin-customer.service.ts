@@ -2,6 +2,7 @@ import "server-only"
 import bcrypt from "bcryptjs"
 import type { OrderStatus, Prisma, UserStatus } from "@prisma/client"
 import { startOfVnMonth } from "@/lib/admin-dates"
+import { avatarFromRow, type AvatarData } from "@/lib/avatar"
 import { customerTier, type CustomerTier, type TierRules } from "@/lib/customer-tier"
 import {
   createCustomerSchema,
@@ -43,6 +44,9 @@ export class AdminCustomerError extends Error {
   }
 }
 
+/** Cột ảnh đại diện cần lấy cùng khách (khớp avatarFromRow). */
+const AVATAR_SELECT = { avatarKind: true, avatarColor: true, avatarStyle: true, avatarSeed: true, avatarUrl: true } as const
+
 export interface AdminContext {
   userId: string
 }
@@ -52,6 +56,8 @@ export interface CustomerListItem {
   name: string
   /** Chữ cái đầu của tên (avatar). */
   initial: string
+  /** Ảnh đại diện khách đã chọn. */
+  avatar: AvatarData
   email: string
   phone: string | null
   tier: CustomerTier
@@ -101,7 +107,19 @@ export interface CustomerDetail extends CustomerListItem {
 
 function toListItem(
   tiers: TierRules,
-  u: { id: string; name: string; email: string; phone: string | null; status: UserStatus; createdAt: Date },
+  u: {
+    id: string
+    name: string
+    email: string
+    phone: string | null
+    status: UserStatus
+    createdAt: Date
+    avatarKind: string
+    avatarColor: string | null
+    avatarStyle: string | null
+    avatarSeed: string | null
+    avatarUrl: string | null
+  },
   stats: { orderCount: number; totalSpend: number } | undefined
 ): CustomerListItem {
   const totalSpend = stats?.totalSpend ?? 0
@@ -109,6 +127,7 @@ function toListItem(
     id: u.id,
     name: u.name,
     initial: u.name.trim().charAt(0).toUpperCase(),
+    avatar: avatarFromRow(u),
     email: u.email,
     phone: u.phone,
     tier: customerTier(totalSpend, tiers),
@@ -156,7 +175,7 @@ export async function listCustomers(input: CustomerListFilterInput = {}): Promis
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
-      select: { id: true, name: true, email: true, phone: true, status: true, createdAt: true },
+      select: { id: true, name: true, email: true, phone: true, status: true, createdAt: true, ...AVATAR_SELECT },
     }),
   ])
   const stats = await orderStatsFor(users.map((u) => u.id))
@@ -210,6 +229,7 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail>
       role: true,
       status: true,
       createdAt: true,
+      ...AVATAR_SELECT,
       addresses: {
         orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
         select: { id: true, fullName: true, phone: true, street: true, ward: true, province: true, isDefault: true },
@@ -271,7 +291,7 @@ export async function createCustomerByAdmin(input: CreateCustomerInput): Promise
   try {
     const user = await db.user.create({
       data: { email: data.email, name: data.name, phone: data.phone, passwordHash, role: "CUSTOMER", status: "ACTIVE" },
-      select: { id: true, name: true, email: true, phone: true, status: true, createdAt: true },
+      select: { id: true, name: true, email: true, phone: true, status: true, createdAt: true, ...AVATAR_SELECT },
     })
     return toListItem((await getShopSettings()).tiers, user, undefined)
   } catch (e) {

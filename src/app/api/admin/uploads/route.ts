@@ -5,7 +5,7 @@ import { getAdminUser, NOT_ADMIN_MESSAGE } from "@/server/auth/admin"
 import {
   checkUploadBytes,
   generateUploadName,
-  UPLOAD_DIR,
+  uploadDirFor,
   UPLOAD_MAX_BYTES,
   UPLOAD_MAX_FILES,
   uploadUrl,
@@ -35,7 +35,7 @@ function isSameOrigin(req: Request): boolean {
  * POST multipart, trường "files" (tối đa UPLOAD_MAX_FILES ảnh): chỉ Admin.
  * Mọi file được kiểm hết rồi mới ghi (một file lỗi thì không ghi file nào). Loại file quyết định bởi magic bytes,
  * tên file do server sinh; Content-Type/tên/đuôi của client bị bỏ qua hoàn toàn.
- * Trả { url (ảnh đầu), urls: ["/uploads/<uuid>.<ext>", ...] } theo đúng thứ tự gửi lên.
+ * Trả { url (ảnh đầu), urls: ["/uploads/products/<uuid>.<ext>", ...] } theo đúng thứ tự gửi lên.
  */
 export async function POST(req: Request) {
   // getAdminUser() là cổng đầu tiên: chưa đăng nhập, khách hay bị khoá đều bị từ chối trước khi đọc thân yêu cầu.
@@ -66,13 +66,14 @@ export async function POST(req: Request) {
     checked.push({ buf, type: r.type })
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true })
+  const dir = uploadDirFor("products")
+  await mkdir(dir, { recursive: true })
   const urls: string[] = []
   for (const { buf, type } of checked) {
     const name = generateUploadName(type)
     // flag "wx": không bao giờ ghi đè file có sẵn. path.join an toàn vì `name` là UUID + đuôi do server sinh.
-    await writeFile(path.join(UPLOAD_DIR, name), buf, { flag: "wx" })
-    urls.push(uploadUrl(name))
+    await writeFile(path.join(dir, name), buf, { flag: "wx" })
+    urls.push(uploadUrl(name, "products"))
   }
   return NextResponse.json({ url: urls[0], urls }, { status: 201 })
 }

@@ -76,7 +76,7 @@ Mô tả: Sơ mi cổ trụ không ve áo, đường nét tinh giản mang hơi 
 
 ## 3. Schema bảng embedding (ĐÃ CÓ từ 2026-11-13)
 
-Extension `vector` đã bật (migration `20261109180232_init`); bảng `ProductEmbedding` đã có (migration `20261113114658_product_embedding`, cột `vector(1024)`, chỉ mục HNSW). Tách bảng riêng để bảng `Product` không phình và dễ thay model.
+Extension `vector` đã bật và bảng `ProductEmbedding` đã có (cột `vector(1024)`, chỉ mục HNSW), cùng nằm trong migration gốc `20261119120000_init` (đã gộp từ các migration cũ; chỉ mục HNSW viết tay ở cuối file). Tách bảng riêng để bảng `Product` không phình và dễ thay model.
 
 ```prisma
 model ProductEmbedding {

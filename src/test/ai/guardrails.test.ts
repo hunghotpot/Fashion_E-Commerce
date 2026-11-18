@@ -311,7 +311,7 @@ describe("xác nhận thêm giỏ: phát lại, mạo danh, hết hạn, đồng
 
 // ---------------------------------------------------------------------------------------------------------------------
 describe("PII và bí mật không lọt vào kết quả tool, chỉ dẫn hệ thống hay khối kiến thức", () => {
-  const SECRET = /passwordHash|tokenHash|VNP_|JWT_|Bearer|@|0987654321|0912345678|Lê Lợi|gọi trước khi giao/
+  const SECRET = /passwordHash|tokenHash|JWT_|Bearer|@|0987654321|0912345678|Lê Lợi|gọi trước khi giao/
 
   const mkCtx = (events: ChatEvent[]): ToolContext => ({
     userId: "u1",
@@ -368,7 +368,7 @@ describe("PII và bí mật không lọt vào kết quả tool, chỉ dẫn hệ
   })
 
   it("chỉ dẫn hệ thống không chứa tên biến môi trường, khoá hay mật khẩu", () => {
-    expect(SYSTEM_PROMPT).not.toMatch(/VNP_|JWT_|AI_[A-Z]|CRON_|Bearer|passwordHash|DATABASE_URL|REDIS_URL/)
+    expect(SYSTEM_PROMPT).not.toMatch(/JWT_|AI_[A-Z]|CRON_|Bearer|passwordHash|DATABASE_URL|REDIS_URL/)
   })
 
   it("đoạn kiến thức chứa lệnh và thẻ đóng giả: không thoát khỏi khối dữ liệu, chỉ dẫn vẫn coi nó là dữ liệu", () => {

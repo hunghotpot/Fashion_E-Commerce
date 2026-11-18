@@ -33,7 +33,7 @@ Tài liệu mô tả đúng code đang có (viết 2026-11-10, cập nhật 2026
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Thư mục phụ trợ: `src/lib/` (hàm thuần dùng chung server/client: `cart.ts`, `order.ts`, `shipping.ts`, `product-variants.ts`, `format.ts`, `care.ts`), `src/lib/validators/` (Zod), `src/types/` (DTO), `src/server/payment/` (ký VNPay, VietQR), `src/server/auth/` (jwt, session, admin, rate-limit), `src/server/ai/advisor/` (tư vấn size, đã chạy thật, xem 3.8), `src/server/uploads.ts` (hàm thuần kiểm tra ảnh tải lên). Hàm thuần riêng cho Admin ở `src/lib/`: `admin-list.ts`, `admin-dates.ts`, `inventory.ts`, `customer-tier.ts`.
+Thư mục phụ trợ: `src/lib/` (hàm thuần dùng chung server/client: `cart.ts`, `order.ts`, `shipping.ts`, `product-variants.ts`, `format.ts`, `care.ts`), `src/lib/validators/` (Zod), `src/types/` (DTO), `src/server/payment/` (VietQR), `src/server/auth/` (jwt, session, admin, rate-limit), `src/server/ai/advisor/` (tư vấn size, đã chạy thật, xem 3.8), `src/server/uploads.ts` (hàm thuần kiểm tra ảnh tải lên). Hàm thuần riêng cho Admin ở `src/lib/`: `admin-list.ts`, `admin-dates.ts`, `inventory.ts`, `customer-tier.ts`.
 
 **Tầng Admin** (từ 2026-11-12) dùng đúng các lớp trên: giao diện ở `src/app/(admin)/admin/**` + `src/components/admin/**`, Server Action `src/app/actions/admin-*.ts`, route `/api/admin/uploads`, nghiệp vụ ở `src/server/services/admin-*.service.ts`. Service Admin **không tự kiểm quyền**: tầng gọi phải kiểm bằng `getAdminUser()` (`src/server/auth/admin.ts`) trước khi gọi. Chi tiết ở mục 2.1 và 3.7.
 
@@ -58,10 +58,7 @@ Thư mục phụ trợ: `src/lib/` (hàm thuần dùng chung server/client: `car
 | `/api/cart/items/[variantId]` | PATCH, DELETE | đăng nhập | `cart.updateQuantity`, `cart.removeItem` |
 | `/api/auth/me` | GET | cookie | `getCurrentUser` |
 | `/api/auth/refresh` | GET | refresh cookie (do middleware chuyển hướng tới) | `auth.refresh` |
-| `/api/payment/vnpay/pay` | GET | đăng nhập | `payment.getVnpayPayUrl` |
-| `/api/payment/vnpay/return` | GET | công khai (chỉ hiển thị) | `payment.verifyReturn`, `findOrderIdByCode` |
-| `/api/payment/vnpay/ipn` | GET | chữ ký VNPay | `payment.handleIPN` |
-| `/api/cron/expire-orders` | GET | `Authorization: Bearer CRON_SECRET` | `payment.expireUnpaidVnpayOrders` |
+| `/api/cron/expire-orders` | GET | `Authorization: Bearer CRON_SECRET` | `payment.expireUnpaidOrders` |
 | `/api/ai/chat` | POST | đăng nhập (khách 401), cờ AI bật (tắt 503) | `ai/chat/handler.handleChat` (giới hạn tốc độ, ngân sách token, model và tập tool đóng 10 tool (9 đọc/giao diện + `addToCart` chỉ tạo thẻ xác nhận); trả luồng NDJSON gồm chữ, thẻ và hành động giao diện) |
 | `/api/ai/confirm` | POST | đăng nhập (khách 401), cờ AI bật (tắt 503) | `ai/chat/confirm.handleConfirm` (bước 2 của `addToCart`: lấy bản ghi xác nhận dùng một lần rồi `addItem`; nơi duy nhất tầng AI ghi giỏ) |
 
@@ -77,8 +74,11 @@ Trang Server Component (`src/app/(shop)/**`) gọi service trực tiếp để �
 
 | Route | Method | Quyền | Việc |
 |---|---|---|---|
-| `/api/admin/uploads` | POST | Admin (`getAdminUser`) | Tải ảnh sản phẩm vào `public/uploads` (magic bytes, 5MB, 4 ảnh, tên do server sinh) |
-| `/uploads/[name]` | GET | công khai | Phục vụ ảnh đã tải (tên phải khớp UUID + jpg/png/webp) |
+| `/api/admin/uploads` | POST | Admin (`getAdminUser`) | Tải ảnh sản phẩm vào `public/uploads/products` (magic bytes, 5MB, 4 ảnh, tên do server sinh) |
+| `/uploads/[name]` | GET | công khai | Phục vụ ảnh sản phẩm tải từ trước khi chia thư mục (tên phải khớp UUID + jpg/png/webp) |
+| `/uploads/[name]/[file]` | GET | công khai | Phục vụ ảnh theo thư mục (`products`, `avatars`); thư mục trong danh sách, tên khớp UUID + jpg/png/webp |
+| `/api/account/avatar` | POST | đăng nhập (`getCurrentUser`) | Tải ảnh đại diện của chính mình (1 ảnh, ≤512KB, magic bytes, tên do server sinh) → `avatar.saveUploadedAvatar` |
+| `/avatars/[style]` | GET | công khai | Ảnh đại diện tạo sẵn (DiceBear, SVG) từ `?seed=`; style trong danh sách CC0, seed chữ+số |
 
 Trang `/admin` (Tổng quan), `/admin/orders`, `/admin/products`, `/admin/categories`, `/admin/size-charts`, `/admin/customers` nối dữ liệu thật; `/admin/vouchers` và `/admin/settings` là giao diện minh hoạ, chưa có backend.
 
@@ -131,17 +131,15 @@ Chỉ kiểm tồn kho, không giữ chỗ. `MAX_LINE_QUANTITY = 99` (`src/lib/c
 | *System* `cancelExpiredOrder` | `(orderId)` | `void` | `CANNOT_CANCEL`, `ORDER_NOT_FOUND` |
 | *Nội bộ* `recordStatusChange` | `(tx, orderId, from, to, actor, note?)` | `void` | – |
 
-`CreateOrderInput = { addressId? ; newAddress?: AddressInput ; paymentMethod: "COD"|"BANK_TRANSFER"|"VNPAY" ; note? }`. `createOrder` chạy trong một `$transaction`: trừ kho bằng `updateMany({stock >= qty})`, snapshot giá vào `OrderItem`, cấp mã `FS-YYYYMMDD-NNNN`, xoá giỏ. Người khác truy cập đơn không phải của mình luôn nhận NOT_FOUND/`null`. Giỏ của đơn lấy theo `userId`.
+`CreateOrderInput = { addressId? ; newAddress?: AddressInput ; paymentMethod: "COD"|"BANK_TRANSFER" ; note? }`. `createOrder` chạy trong một `$transaction`: trừ kho bằng `updateMany({stock >= qty})`, snapshot giá vào `OrderItem`, cấp mã `FS-YYYYMMDD-NNNN`, xoá giỏ. Người khác truy cập đơn không phải của mình luôn nhận NOT_FOUND/`null`. Giỏ của đơn lấy theo `userId`.
 
-### 3.4 `payment.service.ts` — User / công khai (VNPay)
+### 3.4 `payment.service.ts` — User / công khai (chuyển khoản)
 | Hàm | Chữ ký | Trả về | Lỗi |
 |---|---|---|---|
-| `getVnpayPayUrl` | `(userId, orderId, ipAddr)` | `string` (URL ký) | `OrderError`: `ORDER_NOT_FOUND`, `CANNOT_PAY`, `PAYMENT_EXPIRED` |
-| `createPaymentUrl` | `(order, opts?)` | `string` | `Error` nếu thiếu cấu hình VNPay |
-| `verifyReturn` | `(params, config?)` | `VnpayReturnResult` (không đụng DB) | `Error` nếu thiếu cấu hình |
-| `findOrderIdByCode` | `(code)` | `string \| null` | – |
-| `handleIPN` | `(params, config?)` | `IpnResponse` (`RspCode`, `Message`) | – (lỗi trả bằng mã) |
-| `expireUnpaidVnpayOrders` | `(now?)` | `{ cancelled: number }` | – |
+| `reportBankTransferPaid` | `(user: {id}, orderId)` | `{ reportedAt: Date }` | `OrderError`: `ORDER_NOT_FOUND`, `CANNOT_PAY` |
+| `getTransferReportedAt` | `(userId, orderId)` | `Date \| null` | – |
+| `expireUnpaidBankTransferOrders` | `(now?)` | `{ cancelled: number }` | – |
+| `expireUnpaidOrders` | `(now?)` | `{ cancelled: number }` (hiện chỉ gọi hàm trên) | – |
 
 ### 3.5 `address.service.ts` — User
 `listAddresses(userId): AddressDTO[]`, `createAddress(userId, input: AddressInput)`, `updateAddress(userId, id, input)`, `deleteAddress(userId, id)`, `setDefaultAddress(userId, id)`. Lỗi: `AddressNotFoundError` (**không có trường `code`**).

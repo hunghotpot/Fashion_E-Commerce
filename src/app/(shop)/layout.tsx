@@ -35,7 +35,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
     <CartProvider initialCart={cart}>
       <AssistantProvider enabled={aiEnabled} authenticated={!!user}>
         <SkipLink />
-        <SiteHeader user={user && { name: user.name, email: user.email, role: user.role, totalSpend, tierRules: settings.tiers }} />
+        <SiteHeader user={user && { name: user.name, email: user.email, role: user.role, totalSpend, tierRules: settings.tiers, avatar: user.avatar }} />
         <HashFocus />
         <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-page px-4 pt-7 outline-none md:px-8">
           {children}

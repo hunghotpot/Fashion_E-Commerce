@@ -30,7 +30,7 @@ export function CustomerTable({ items }: { items: CustomerListItem[] }) {
           <AdminTr key={c.id}>
             <td>
               <div className="flex items-center gap-3">
-                <CustomerAvatar initial={c.initial} tier={c.tier} locked={locked} />
+                <CustomerAvatar name={c.name} avatar={c.avatar} tier={c.tier} locked={locked} />
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{c.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{c.email}</p>

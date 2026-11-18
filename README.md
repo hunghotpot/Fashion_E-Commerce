@@ -17,8 +17,7 @@ Mô tả chi tiết từng trang và chức năng nằm ở [docs/features.md](d
 | Chi tiết sản phẩm | Chọn màu × size, bảng size, thêm giỏ / mua ngay | [xem](docs/features.md#trang-chi-tiết-sản-phẩm) |
 | Giỏ hàng | Chỉ cho người đã đăng nhập; kiểm tồn kho; cảnh báo giá đổi | [xem](docs/features.md#giỏ-hàng) |
 | Thanh toán & đơn hàng | COD, chuyển khoản (VietQR); trừ kho nguyên tử trong một transaction | [xem](docs/features.md#thanh-toán--đơn-hàng) |
-| Thanh toán VNPay | Ký HMAC-SHA512, IPN idempotent, tự huỷ đơn quá 15 phút; cách chạy thử sandbox | [xem](docs/features.md#thanh-toán-vnpay) |
-| Trang Admin | Đơn hàng, kho, danh mục, bảng size, khách hàng; Voucher và Cài đặt mới là giao diện minh hoạ | [xem](docs/features.md#trang-admin) |
+| Trang Admin | Đơn hàng, kho, danh mục, bảng size, khách hàng, voucher, cài đặt (cửa hàng, tài khoản nhận tiền, ship và kho, hạng thành viên) |  [xem](docs/features.md#trang-admin) |
 | Đơn hàng của tôi | Lọc, tìm, timeline trạng thái, huỷ đơn, mua lại | [xem](docs/features.md#đơn-hàng-của-tôi) |
 | Trợ lý AI | Tìm kiếm ngữ nghĩa, tư vấn size, phối đồ, thêm vào giỏ có xác nhận | [Bật trợ lý AI](#bật-trợ-lý-ai-tuỳ-chọn), [docs/ai/](docs/ai/00-overview.md) |
 
@@ -45,7 +44,7 @@ npm run db:seed             # nạp dữ liệu mẫu (xem mục "Dữ liệu m�
 npm run dev                 # http://localhost:3000
 ```
 
-> Dùng `migrate deploy` (không phải `migrate dev`) để dựng DB từ đầu. `migrate dev` chỉ dùng khi bạn đổi `schema.prisma`; nó luôn đề nghị tạo thêm một migration **xoá chỉ mục HNSW** của vector (Prisma không biết chỉ mục này vì phải viết tay): hãy từ chối (Ctrl+C), đừng đặt tên migration. Chi tiết: `docs/ai/01-data-for-ai.md` mục 3.
+> Dùng `migrate deploy` (không phải `migrate dev`) để dựng DB từ đầu. Lịch sử migration đã được **gộp thành một migration gốc** (`prisma/migrations/20261119120000_init`, 2026-11-19), chỉ dùng cho DB trống: DB dựng từ các migration cũ phải xoá (`docker compose down -v`) và dựng lại. `migrate dev` chỉ dùng khi bạn đổi `schema.prisma`; nó luôn đề nghị tạo thêm một migration **xoá chỉ mục HNSW** của vector (Prisma không biết chỉ mục này vì phải viết tay): hãy từ chối (Ctrl+C), đừng đặt tên migration. Chi tiết: `docs/ai/01-data-for-ai.md` mục 3.
 
 Xoá cả dữ liệu Docker: `docker compose down -v`.
 
@@ -90,7 +89,6 @@ Sao chép `.env.example` thành `.env` (đã nằm trong `.gitignore`, **không 
 | `JWT_SECRET` | Có | Chuỗi ngẫu nhiên từ 32 ký tự trở lên (ví dụ `openssl rand -base64 32`) |
 | `NEXT_PUBLIC_APP_URL` | Có | Địa chỉ site (`http://localhost:3000` khi dev) |
 | `BANK_NAME`, `BANK_BIN`, `BANK_ACCOUNT_NO`, `BANK_ACCOUNT_NAME` | Không | Tài khoản nhận chuyển khoản MẶC ĐỊNH (VietQR), là **dữ liệu mẫu**. Admin cập nhật tài khoản thật ở Cài đặt > Cổng thanh toán (lưu trong DB, ưu tiên hơn các biến này) |
-| `VNP_TMN_CODE`, `VNP_HASH_SECRET`, `VNP_URL`, `VNP_RETURN_URL` | Không | VNPay; để trống thì phương thức VNPay bị khoá ở trang thanh toán |
 | `CRON_SECRET` | Không | Bảo vệ route cron `/api/cron/expire-orders`; để trống thì route bị khoá |
 | `PRISMA_QUERY_LOG` | Không | Đặt `1` để in mọi câu SQL khi dev |
 | `AI_*` | Chỉ khi bật AI | 6 biến bắt buộc (`AI_ENABLED`, `AI_PROVIDER`, `AI_CHAT_MODEL`, `AI_EMBEDDING_PROVIDER`, `AI_EMBEDDING_MODEL`, `AI_EMBEDDING_DIMENSIONS`) và các biến tuỳ chọn: xem [docs/ai/07-env-and-setup.md](docs/ai/07-env-and-setup.md) |

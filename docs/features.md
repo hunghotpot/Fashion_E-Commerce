@@ -11,7 +11,6 @@ Mô tả từng trang và chức năng của cửa hàng, **khách hàng và Adm
 | [Trang chi tiết sản phẩm](#trang-chi-tiết-sản-phẩm) | `/products/[slug]`: chọn biến thể, thêm giỏ/mua ngay, bảng size, chăm sóc |
 | [Giỏ hàng](#giỏ-hàng) | `cart.service`, tồn kho, cảnh báo giá/hàng, API và giao diện giỏ |
 | [Thanh toán & đơn hàng](#thanh-toán--đơn-hàng) | `createOrder` trong một transaction, huỷ đơn, mã đơn, phí ship, VietQR |
-| [Thanh toán VNPay](#thanh-toán-vnpay) | Tích hợp VNPay (IPN, Return URL, hết hạn 15 phút), cách chạy thử với sandbox |
 | [Đơn hàng của tôi](#đơn-hàng-của-tôi) | `/account/orders`: lịch sử trạng thái, huỷ đơn, mua lại, quyền truy cập |
 | [Trang Admin](#trang-admin) | `/admin`: quyền, màn hình, tải ảnh, khoá tài khoản khách, trạng thái từng màn hình |
 | [Quy ước dựng màn hình Admin](#quy-ước-dựng-màn-hình-admin) | Bộ phận giao diện dùng chung, cấu trúc một màn hình, Server Action và test quyền |
@@ -31,13 +30,12 @@ Cập nhật 2026-11-18.
 | Chi tiết sản phẩm | ✅ | Chọn size/màu, bảng size, sản phẩm liên quan, chăm sóc |
 | Giỏ hàng (người đã đăng nhập) | ✅ | Kiểm tồn kho, cảnh báo đổi giá/hết hàng |
 | Giỏ khách (guest) | — đã bỏ | Quyết định 2026-11-10: giỏ hàng và trợ lý AI đều cần tài khoản; bỏ cột `Cart.sessionId` bằng migration |
-| Thanh toán (COD, VietQR, VNPay) | ✅ | Trừ kho nguyên tử trong transaction, snapshot giá/tên/size/màu vào `OrderItem` |
-| VNPay | ⚠️ | Code hoàn chỉnh và có test, nhưng **chưa thử với sandbox thật** (`VNP_TMN_CODE`/`VNP_HASH_SECRET` để trống); thiếu cấu hình thì phương thức bị khoá |
+| Thanh toán (COD, VietQR) | ✅ | Trừ kho nguyên tử trong transaction, snapshot giá/tên/size/màu vào `OrderItem` |
 | Lịch sử đơn hàng | ✅ | Lọc, phân trang, timeline, huỷ đơn (hoàn kho), mua lại; mọi truy vấn ràng buộc `userId` |
-| Tài khoản và địa chỉ | ✅ | Hồ sơ, đổi mật khẩu (thu hồi mọi refresh token), sổ địa chỉ + mặc định |
+| Tài khoản và địa chỉ | ✅ | Hồ sơ, ảnh đại diện, đổi mật khẩu (thu hồi mọi refresh token), sổ địa chỉ + mặc định |
 | Trợ lý AI | ✅ | Tìm kiếm ngữ nghĩa, tư vấn size, phối đồ, thêm vào giỏ có xác nhận: xem `docs/ai/00-overview.md` |
 
-**Tổng: ✅ 9 · ⚠️ 1 (VNPay chưa thử sandbox) · đã bỏ 1 (giỏ khách).** Trạng thái các màn hình Admin: mục "Trang Admin" bên dưới.
+**Tổng: ✅ 9 · đã bỏ 1 (giỏ khách).** Trạng thái các màn hình Admin: mục "Trang Admin" bên dưới.
 
 ## Xác thực
 
@@ -102,13 +100,13 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 
 ## Thanh toán & đơn hàng
 
-- **Luồng:** giỏ → `/checkout` (bắt buộc đăng nhập) → COD: `/orders/[id]/success`; chuyển khoản: `/orders/[id]/payment` (mã VietQR) → `/orders/[id]/success`. VNPAY (thẻ) đi qua cổng VNPay, xem mục "Thanh toán VNPay" bên dưới.
+- **Luồng:** giỏ → `/checkout` (bắt buộc đăng nhập) → COD: `/orders/[id]/success`; chuyển khoản: `/orders/[id]/payment` (mã VietQR) → `/orders/[id]/success`.
 - **`createOrder` (src/server/services/order.service.ts)** chạy trong MỘT `prisma.$transaction`: đọc giỏ, kiểm tra địa chỉ, trừ kho bằng `updateMany({ stock >= qty })` (nguyên tử, chống oversell khi nhiều người mua cùng lúc), tạo `Order` + `OrderItem` (snapshot giá/tên/size/màu), cấp mã đơn, xoá giỏ. Thiếu hàng ở bất kỳ dòng nào thì rollback toàn bộ và báo rõ từng sản phẩm.
 - **`cancelOrder`:** chỉ khi `PENDING`/`CONFIRMED`, hoàn tồn kho trong cùng transaction.
 - **Mã đơn:** `FS-YYYYMMDD-0001`, số thứ tự theo ngày (giờ Việt Nam) lấy từ bảng `OrderSequence` bằng upsert increment nên không trùng.
 - **Phí vận chuyển:** `src/lib/shipping.ts` — miễn phí từ 500.000đ, dưới mức đó 30.000đ.
 - **VietQR:** `src/lib/vietqr.ts` tự sinh payload chuẩn NAPAS 247 (có test CRC; dùng được cả ở client để Admin xem trước). Tài khoản nhận tiền do **Admin cập nhật ở Cài đặt > Cổng thanh toán** (chọn ngân hàng từ `src/lib/banks.ts`, số tài khoản, tên chủ tài khoản, có xem trước QR); lưu ở bảng `PaymentAccount` (`payment-account.service.ts`). Chưa lưu thì dùng `BANK_NAME`, `BANK_BIN`, `BANK_ACCOUNT_NO`, `BANK_ACCOUNT_NAME` trong `.env` (dữ liệu MẪU).
-- **Chưa có:** tự động đối soát tiền chuyển khoản (Admin xác nhận tay đã nhận tiền ở `/admin/orders/[id]`; trước đó đơn vẫn chờ thanh toán). **Hạn thanh toán:** VNPay 15 phút, chuyển khoản 24 giờ (`BANK_TRANSFER_WINDOW_HOURS`, `paymentDeadline` trong `src/lib/order.ts`). Đơn chuyển khoản còn `PENDING` mà Admin chưa xác nhận đã nhận tiền quá hạn thì tự huỷ, hoàn kho và lượt voucher (`expireUnpaidBankTransferOrders`; cron `/api/cron/expire-orders` chạy cả hai loại, và các trang đơn của khách/Admin cũng dọn khi mở). Đơn Admin đã duyệt tay thì không tự huỷ. Khi Admin xác nhận tiền, khách được báo qua chuông (và email nếu bật). Admin có bộ lọc "Chờ xác nhận chuyển khoản" (`?status=TRANSFER`) kèm hạn xác nhận; chi tiết đơn của khách và Admin hiện banner chờ xác nhận.
+- **Chưa có:** tự động đối soát tiền chuyển khoản (Admin xác nhận tay đã nhận tiền ở `/admin/orders/[id]`; trước đó đơn vẫn chờ thanh toán). **Hạn thanh toán:** chuyển khoản 24 giờ (`BANK_TRANSFER_WINDOW_HOURS`, `paymentDeadline` trong `src/lib/order.ts`). Đơn chuyển khoản còn `PENDING` mà Admin chưa xác nhận đã nhận tiền quá hạn thì tự huỷ, hoàn kho và lượt voucher (`expireUnpaidBankTransferOrders`; cron `/api/cron/expire-orders` (kèm header `Authorization: Bearer <CRON_SECRET>`, đồng thời dọn thông báo Admin cũ), và các trang đơn của khách/Admin cũng dọn khi mở). Đơn Admin đã duyệt tay thì không tự huỷ. Khi Admin xác nhận tiền, khách được báo qua chuông (và email nếu bật). Admin có bộ lọc "Chờ xác nhận chuyển khoản" (`?status=TRANSFER`) kèm hạn xác nhận; chi tiết đơn của khách và Admin hiện banner chờ xác nhận.
 - **Test:** `order.service.integration.test.ts` chạy trên PostgreSQL thật (cần `npm run db:up`), gồm 2 đơn cùng mua biến thể còn 1 sản phẩm và 5 người tranh 2 sản phẩm.
 
 ## Thanh toán từng món và Mua ngay
@@ -137,7 +135,7 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 - **Hai nhóm mã dùng cùng lúc:** một mã GIẢM GIÁ (`CASH`/`PERCENT`, trừ vào tiền hàng) và một mã VẬN CHUYỂN (`FREESHIP`, trừ vào phí ship); nhóm suy ra từ loại (`voucherSlot` trong `src/lib/voucher.ts`). Hai mã cùng nhóm không dùng chung được (`SLOT_CONFLICT`). `Order` lưu riêng `discount`/`voucherCode` (giảm giá) và `shippingDiscount`/`shippingVoucherCode` (vận chuyển); `total = subtotal + shippingFee - discount - shippingDiscount`. Mỗi đơn có tối đa 2 `VoucherRedemption`. Mã freeship khi đơn đã miễn phí ship bị từ chối.
 - **Áp mã:** `createOrder` nhận `voucherCodes` (tối đa 2), gọi `resolveVoucherSet` rồi `consumeVoucher` từng mã trong CÙNG transaction đặt đơn (tăng `usedCount` bằng câu UPDATE có điều kiện còn lượt, nên hai đơn tranh lượt cuối chỉ một đơn thắng). Số tiền giảm luôn do server tính; client chỉ gửi mã. Lỗi voucher (`VoucherError`) làm đơn không được tạo, kho và giỏ giữ nguyên.
 - **Huỷ đơn:** `cancelOrderCore` gọi `releaseVoucher` để hoàn lượt của cả hai mã (xoá redemption, giảm `usedCount`), khách dùng lại được mã.
-- **Phương thức thanh toán:** COD và chuyển khoản (`VOUCHER_PAYMENT_METHODS` trong `src/lib/voucher.ts`); VNPay chưa mở.
+- **Phương thức thanh toán:** COD và chuyển khoản (`VOUCHER_PAYMENT_METHODS` trong `src/lib/voucher.ts`).
 - **Xem trước:** `POST /api/vouchers/preview` (body `{ code, paymentMethod? }`) trả `{ ok, preview | message }` cho ô nhập mã ở `/cart` và `/checkout` (`useVoucher`, `VoucherBox`; mã nhớ trong sessionStorage qua `src/stores/voucher.ts`). Đổi phương thức thanh toán sang không phải COD thì mã báo lỗi và không được gửi khi đặt đơn.
 - **Voucher dành cho bạn:** dưới ô nhập mã (giỏ và thanh toán) hiện danh sách voucher đang chạy mà khách chưa dùng (`POST /api/vouchers/available`, `listAvailableVouchers`), kiểm tra trên đúng phần hàng đang thanh toán. Chia hai nhóm "Voucher giảm giá" và "Voucher vận chuyển", mỗi nhóm có "Tiết kiệm nhất" riêng và áp được cùng lúc (ô nhập tự xếp mã vào đúng nhóm, chọn mã khác cùng nhóm thì thay mã cũ). Dùng được xếp trước, bấm "Áp dụng" là áp; chưa dùng được vẫn hiện mờ kèm lý do (thiếu đơn tối thiểu, chỉ COD, sai danh mục). Hiện 3 voucher, "Xem thêm" mở hết (tối đa 20, cuộn trong khung). Voucher công khai (`audience = ALL`) hiện cho mọi khách; voucher theo hạng hoặc gán riêng chỉ hiện với khách đủ điều kiện (xem mục "Hạng thành viên và ưu đãi"). Trang "Voucher của tôi" (`/account/vouchers`) gom tất cả voucher của khách.
 - **Admin:** `/admin/vouchers` (`admin-voucher.service.ts`, `src/app/actions/admin-vouchers.ts`): tạo, sửa, bật/tắt, xoá. Không xoá được mã đã có đơn dùng (hãy tắt); không xoá được danh mục đang được voucher áp riêng. Thống kê tính theo đơn chưa huỷ. Form có mục "Đối tượng" (xem mục "Hạng thành viên và ưu đãi").
@@ -165,53 +163,28 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 
 - **Chuông trang quản trị** (`AdminNotificationBell`) là hộp thư sự kiện: chip lọc Tất cả/Đơn hàng/Thanh toán/Kho, chấm chưa đọc, "Đánh dấu đã đọc" (tất cả) và nút "Đã đọc" ở từng dòng chưa đọc, liên kết tới đúng đơn/trang (bấm dòng có liên kết thì tự đánh dấu đã đọc); xem đủ có phân trang ở `/admin/notifications?category=`.
 - **Mô hình:** bảng `AdminNotification` (một luồng chung) + mốc `User.adminNotificationsSeenAt` ("đọc tất cả") + bảng `AdminNotificationRead` (đã đọc từng dòng, theo từng Admin, xoá theo khi thông báo hoặc Admin bị xoá). Chưa đọc = mới hơn mốc VÀ chưa có dòng trong `AdminNotificationRead`.
-- **Sự kiện** (tạo trong cùng transaction với sự kiện, qua `notifyAdmins`): đơn mới (ORDER); đơn chuyển khoản chờ xác nhận tiền kèm nội dung chuyển khoản và hạn 24 giờ (PAYMENT); VNPay đã thanh toán (PAYMENT); khách huỷ hoặc hệ thống huỷ vì quá hạn (ORDER, Admin tự huỷ thì không báo); biến thể vừa tụt xuống ngưỡng sắp hết hàng (`ShopSettings.lowStockThreshold`, mặc định 10) (STOCK) do khách đặt hàng, Admin kiểm kê/đặt lại tồn (`adjustStock`) hoặc sửa tay tồn trong form sản phẩm (`updateProduct`), qua hàm chung `notifyLowStock` (báo một lần khi vừa tụt xuống ngưỡng, chỉ cho sản phẩm đang bán). **Dọn dẹp:** cron `/api/cron/expire-orders` xoá thông báo cũ hơn 30 ngày (`ADMIN_NOTIFICATION_RETENTION_DAYS`, kèm trạng thái đọc của chúng).
+- **Sự kiện** (tạo trong cùng transaction với sự kiện, qua `notifyAdmins`): đơn mới (ORDER); đơn chuyển khoản chờ xác nhận tiền kèm nội dung chuyển khoản và hạn 24 giờ (PAYMENT); khách huỷ hoặc hệ thống huỷ vì quá hạn (ORDER, Admin tự huỷ thì không báo); biến thể vừa tụt xuống ngưỡng sắp hết hàng (`ShopSettings.lowStockThreshold`, mặc định 10) (STOCK) do khách đặt hàng, Admin kiểm kê/đặt lại tồn (`adjustStock`) hoặc sửa tay tồn trong form sản phẩm (`updateProduct`), qua hàm chung `notifyLowStock` (báo một lần khi vừa tụt xuống ngưỡng, chỉ cho sản phẩm đang bán). **Dọn dẹp:** cron `/api/cron/expire-orders` xoá thông báo cũ hơn 30 ngày (`ADMIN_NOTIFICATION_RETENTION_DAYS`, kèm trạng thái đọc của chúng).
 - **Code:** `src/server/services/admin-notification.service.ts`, `src/lib/admin-notification.ts`, Server Action `markAdminNotificationsSeenAction` và `markAdminNotificationReadAction`, dòng thông báo dùng chung `AdminNotificationRow`. Test: `admin-notification.integration.test.ts` (đọc từng dòng, báo sắp hết hàng khi kiểm kê, dọn cũ), `admin-catalog.integration.test.ts` (sửa tay tồn), `src/app/actions/admin-notifications.test.ts`.
-
-## Thanh toán VNPay
-
-Dành cho đơn có `paymentMethod = VNPAY`. Tích hợp API 2.1.0, ký HMAC-SHA512.
-
-**Luồng:** đặt hàng (đơn `PENDING`, đã trừ kho) → `GET /api/payment/vnpay/pay?orderId=` ký URL rồi chuyển sang cổng VNPay → người dùng thanh toán → VNPay gọi **IPN** (server-to-server, nguồn sự thật) và đưa người dùng về **Return URL** (chỉ hiển thị kết quả, không đổi trạng thái).
-
-| Route | Vai trò |
-| --- | --- |
-| `GET /api/payment/vnpay/pay` | Cần đăng nhập. Ký URL thanh toán và chuyển hướng; dùng cả cho "Thanh toán lại". |
-| `GET /api/payment/vnpay/return` | Kiểm chữ ký rồi chuyển tới trang thành công hoặc trang "thanh toán không thành công". |
-| `GET /api/payment/vnpay/ipn` | VNPay gọi. Kiểm chữ ký + số tiền khớp đơn, cập nhật `paymentStatus`; **idempotent** (gọi lại trả `02`). |
-| `GET /api/cron/expire-orders` | Huỷ đơn VNPAY quá 15 phút chưa trả tiền và hoàn tồn kho. Cần header `Authorization: Bearer <CRON_SECRET>`. |
-
-**Cấu hình** (`.env`): `VNP_TMN_CODE`, `VNP_HASH_SECRET`, `VNP_URL` (mặc định sandbox), `VNP_RETURN_URL`, `CRON_SECRET`. Chưa đặt `VNP_TMN_CODE`/`VNP_HASH_SECRET` thì lựa chọn VNPAY bị khoá ở trang thanh toán. Secret và dữ liệu giao dịch không bao giờ được log.
-
-**Quy tắc trạng thái:** IPN thành công → `paymentStatus = PAID`, đơn `CONFIRMED`; giao dịch thất bại → `FAILED` (đơn vẫn `PENDING`, được thanh toán lại trong 15 phút); quá hạn (15 phút + 2 phút đệm cho IPN đến muộn) → đơn `CANCELLED`, hoàn tồn kho. Job huỷ chỉ chạm đơn chưa trả tiền nên không thể huỷ nhầm đơn vừa được thanh toán.
-
-### Chạy thử với sandbox
-
-1. Đăng ký tài khoản sandbox tại https://sandbox.vnpayment.vn/devreg/ — VNPay gửi email `Terminal ID (vnp_TmnCode)` và `Secret Key (vnp_HashSecret)`. Điền vào `.env`.
-2. Chạy `npm run dev`, thêm hàng vào giỏ, vào `/checkout`, chọn **Thẻ Tín dụng / Ghi nợ**, đặt hàng. Trang sẽ chuyển sang cổng VNPay sandbox.
-3. Chọn ngân hàng **NCB** và nhập thẻ thử theo tài liệu VNPay (https://sandbox.vnpayment.vn/apis/vnpay-demo/): số thẻ `9704198526191432198`, tên `NGUYEN VAN A`, ngày phát hành `07/15`, mã OTP `123456`. Đây là thẻ giả của sandbox; hãy đối chiếu lại với tài liệu VNPay nếu thông tin đổi.
-4. **IPN cần URL công khai.** VNPay không gọi được `localhost`. Hoặc dùng tunnel (ngrok, cloudflared) rồi khai báo URL IPN `https://<tunnel>/api/payment/vnpay/ipn` trong trang quản trị merchant sandbox (https://sandbox.vnpayment.vn/merchantv2/); hoặc, khi chạy local, copy phần query của URL Return và gọi tay vào IPN:
-   ```bash
-   curl "http://localhost:3000/api/payment/vnpay/ipn?<query của URL return>"
-   ```
-   Kết quả đúng là `{"RspCode":"00","Message":"Confirm Success"}`; gọi lần hai trả `{"RspCode":"02",...}`.
-5. Thử hết hạn: trong DB lùi `createdAt` của đơn VNPAY 30 phút, rồi gọi
-   ```bash
-   curl -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/expire-orders
-   ```
-   Đơn chuyển `CANCELLED`, tồn kho được hoàn lại. Trên môi trường thật, đặt lịch gọi route này mỗi vài phút (cron của hosting, GitHub Actions, scheduler...).
-
-Test: `payment.service.integration.test.ts` (PostgreSQL thật, dùng secret giả cố định trong `vitest.config.ts`) và `src/server/payment/vnpay.test.ts` (ký/kiểm chữ ký).
 
 ## Đơn hàng của tôi
 
 - **Trang:** `/account/orders` (lọc theo trạng thái, tìm theo mã đơn/tên sản phẩm, phân trang; tất cả nằm trong URL `?status=&q=&page=`) và `/account/orders/[id]` (timeline trạng thái, sản phẩm, địa chỉ, thanh toán, hủy đơn, mua lại). Hai trang này không có sidebar nên `profile`/`addresses` nằm trong nhóm route `(panel)` (có sidebar), còn `orders` đứng riêng.
-- **Lịch sử trạng thái:** bảng `OrderStatusHistory` ghi mỗi lần đổi trạng thái (từ → sang, thời gian, người đổi `CUSTOMER`/`ADMIN`/`SYSTEM`, ghi chú/lý do) và luôn được ghi **trong cùng transaction** với lần đổi: tạo đơn, huỷ đơn (người dùng hoặc job hết hạn), IPN VNPay thành công, và `changeOrderStatus()`. Timeline dựng từ bảng này (`src/lib/order-timeline.ts`). Đơn cũ trước khi có bảng được backfill trong migration.
+- **Lịch sử trạng thái:** bảng `OrderStatusHistory` ghi mỗi lần đổi trạng thái (từ → sang, thời gian, người đổi `CUSTOMER`/`ADMIN`/`SYSTEM`, ghi chú/lý do) và luôn được ghi **trong cùng transaction** với lần đổi: tạo đơn, huỷ đơn (người dùng hoặc job hết hạn) và `changeOrderStatus()`. Timeline dựng từ bảng này (`src/lib/order-timeline.ts`). Đơn cũ trước khi có bảng được backfill trong migration.
 - **`changeOrderStatus(orderId, to, actor, note)`** chuyển đơn tuần tự `PENDING → CONFIRMED → SHIPPING → DELIVERED` (không nhảy cóc, không đi lùi). Admin đổi trạng thái qua trang `/admin/orders` (xem mục "Trang Admin"), bọc bởi `adminChangeOrderStatus`.
 - **Quyền:** mọi hàm của `order.service` (`listOrders`, `getOrderDetail`, `cancelOrder`, `reorder`) ràng buộc `userId` ngay trong câu truy vấn; đơn của người khác không tìm thấy (trang trả 404, kể cả với tài khoản admin), không phụ thuộc vào UI.
 - **Hủy đơn:** chỉ khi `PENDING`/`CONFIRMED`; khoá dòng đơn rồi hoàn tồn kho, ghi lịch sử kèm lý do (tuỳ chọn) trong một transaction.
 - **Mua lại:** thêm các biến thể còn hàng của đơn cũ vào giỏ (cắt theo tồn kho, không vượt số còn lại, bỏ dòng hết hàng/ngừng bán và báo lý do) qua `cart.service.addItemsClamped`.
 - **Chạy test:** `order-history.integration.test.ts` chạy trên PostgreSQL thật (cần `npm run db:up`).
+
+## Ảnh đại diện
+
+- **Ba loại** (`User.avatarKind`, enum `AvatarKind`): `INITIALS` (mặc định: chữ cái đầu của tên trên nền màu chọn trong 6 màu token), `GENERATED` (ảnh DiceBear sinh từ `avatarStyle` + `avatarSeed`) và `UPLOADED` (`avatarUrl`). Cột không dùng của loại khác luôn là null; `avatarFromRow` (`src/lib/avatar.ts`) rơi về chữ cái đầu nếu dữ liệu hỏng nên không bao giờ hiện URL lạ.
+- **Ảnh tạo sẵn:** route `GET /avatars/<kiểu>?seed=...` (`src/app/avatars/[style]/route.ts`) sinh SVG ngay trong code bằng `@dicebear/core` + `@dicebear/collection` (không gọi dịch vụ ngoài, không gửi dữ liệu khách ra ngoài), cache dài và immutable. Chỉ 8 kiểu giấy phép CC0 (không cần ghi công: Hình khối, Vòng tròn, Mặt cười, Kính mờ, Lưới, Chân dung, Phác hoạ, Điểm ảnh); nền theo tông kem của cửa hàng. Kiểu phải nằm trong danh sách, seed chỉ chữ và số (6–32 ký tự, ngẫu nhiên, không dùng email hay tên thật), nếu không trả 404.
+- **Ảnh tải lên:** `POST /api/account/avatar` (multipart, trường `file`, đúng 1 ảnh; chỉ người đăng nhập, chỉ ảnh của chính mình): trình duyệt tự cắt vuông giữa và nén còn 256×256 WebP (cũng bỏ dữ liệu vị trí EXIF) trước khi gửi; server vẫn kiểm lại tối đa 512KB, magic bytes JPEG/PNG/WebP, chặn Origin khác host, tên file UUID do server sinh. Lưu ở `public/uploads/avatars/`, phục vụ qua `/uploads/avatars/<tên>` (cache immutable). Đổi hoặc gỡ ảnh thì file cũ bị xoá khỏi đĩa; ghi DB lỗi thì file vừa ghi cũng bị xoá.
+- **Chọn ảnh:** Server Action `saveAvatarChoiceAction` (chữ cái đầu + màu, hoặc ảnh tạo sẵn) và `removeAvatarAction` (về chữ cái đầu, giữ màu), cùng service `avatar.service.ts`; `userId` luôn lấy từ phiên. Giao diện `AvatarPicker`: bấm vào ảnh ở sidebar tài khoản mở khung 3 tab (Chữ cái đầu, Tạo sẵn có "Ngẫu nhiên", Tải ảnh lên bằng bấm chọn, kéo thả hoặc dán).
+- **Hiện ở đâu** (component `UserAvatar`): sidebar và menu tài khoản trên header, đầu khung chuông thông báo của khách, header Admin, danh sách và chi tiết khách ở Admin (khách chưa chọn gì thì Admin giữ chữ cái đầu tô màu theo hạng). Email đơn hàng KHÔNG hiện ảnh đại diện (dự án chưa có địa chỉ gốc của website để nhúng ảnh và email không hiển thị tốt SVG).
+- **Thư mục tải lên:** `public/uploads/products` (ảnh sản phẩm của Admin) và `public/uploads/avatars` (ảnh đại diện); route phục vụ `/uploads/[name]/[file]` chỉ nhận thư mục trong danh sách. `public/uploads/` trên ổ đĩa máy chủ: chạy nhiều máy chủ hoặc hosting không giữ ổ đĩa thì cần chuyển sang dịch vụ lưu trữ ngoài.
+- **Test:** `src/lib/avatar.test.ts`, `src/app/avatars/[style]/route.test.ts`, `src/app/api/account/avatar/route.test.ts`, `src/app/actions/account-avatar.test.ts`, `src/server/services/avatar.service.integration.test.ts`, `src/app/uploads/[name]/[file]/route.test.ts`.
 
 ## Thông tin cửa hàng
 - **Dữ liệu:** bảng `StoreProfile`, MỘT dòng (id `default`): hotline, email, địa chỉ, giới thiệu (các đoạn cách nhau bằng dòng trống). Chưa cấu hình thì mọi trường là null và trang hiện "chưa có thông tin".
@@ -231,7 +204,7 @@ Test: `payment.service.integration.test.ts` (PostgreSQL thật, dùng secret gi�
 
 - **Vào:** đăng nhập bằng tài khoản ADMIN (xem bảng tài khoản demo) rồi mở `/admin` (menu tài khoản có mục "Trang quản trị"). Middleware chặn theo role, `layout` đọc lại DB bằng `requireAdmin()`; **mọi Server Action và route Admin còn phải tự kiểm quyền bằng `getAdminUser()`** (`src/server/auth/admin.ts`).
 - **Màn hình:** Tổng quan, Đơn hàng (+ chi tiết), Tồn kho & Sản phẩm, Danh mục, Bảng size, Khách hàng (+ chi tiết) và **Voucher** chạy thật; **Cài đặt hệ thống** lưu được 4 tab (Cửa hàng & Brand, Cổng thanh toán: tài khoản nhận tiền, Vận chuyển & Kho, Hạng thành viên); tab Phân quyền Admin là giao diện minh hoạ.
-- **Ảnh sản phẩm:** tải lên qua `POST /api/admin/uploads` (chỉ Admin; JPG/PNG/WebP kiểm bằng chữ ký file, tối đa 5MB và 4 ảnh/lần, tên file do server sinh), lưu ở `public/uploads/` (đã nằm trong `.gitignore`) và phục vụ qua `/uploads/<tên>`. Ảnh seed là ảnh tạm từ picsum.photos (ngẫu nhiên, không liên quan quần áo).
+- **Ảnh sản phẩm:** tải lên qua `POST /api/admin/uploads` (chỉ Admin; JPG/PNG/WebP kiểm bằng chữ ký file, tối đa 5MB và 4 ảnh/lần, tên file do server sinh), lưu ở `public/uploads/products/` (đã nằm trong `.gitignore`) và phục vụ qua `/uploads/products/<tên>`. (Ảnh sản phẩm tải từ trước khi chia thư mục nằm ở gốc `public/uploads/` và vẫn phục vụ qua `/uploads/<tên>`.) Ảnh seed là ảnh tạm từ picsum.photos (ngẫu nhiên, không liên quan quần áo).
 - **Khoá tài khoản khách:** `User.status` (ACTIVE/LOCKED); tài khoản bị khoá không đăng nhập hay refresh được, phiên cũ mất hiệu lực ngay.
 - **Code:** nghiệp vụ ở `src/server/services/admin-*.service.ts`; giao diện ở `src/app/(admin)/admin/` và `src/components/admin/`; quy ước dựng màn hình mới ở mục "Quy ước dựng màn hình Admin" bên dưới.
 - **Test:** test Server Action Admin dùng mock (quyền, input, lỗi); test service `admin-*.integration.test.ts` cần PostgreSQL (`npm run db:up`).
@@ -251,7 +224,7 @@ Test: `payment.service.integration.test.ts` (PostgreSQL thật, dùng secret gi�
 
 **Việc Admin còn tồn:**
 - Ô tìm kiếm ở header hiện chỉ chuyển sang `/admin/orders?q=`; chuông chỉ trỏ tới đơn chờ xác nhận.
-- Voucher áp cho thanh toán COD và chuyển khoản (hằng `VOUCHER_PAYMENT_METHODS` trong `src/lib/voucher.ts`); VNPay chưa mở. Một đơn dùng tối đa 2 mã (một giảm giá, một vận chuyển). Voucher theo hạng và cho từng khách đã có (xem "Hạng thành viên và ưu đãi").
+- Voucher áp cho thanh toán COD và chuyển khoản (hằng `VOUCHER_PAYMENT_METHODS` trong `src/lib/voucher.ts`). Một đơn dùng tối đa 2 mã (một giảm giá, một vận chuyển). Voucher theo hạng và cho từng khách đã có (xem "Hạng thành viên và ưu đãi").
 - Vai trò nhân viên (Quản lý Kho, CSKH) ảnh hưởng auth: tab Phân quyền Admin còn là minh hoạ. (Bảng cấu hình tồn kho, ship, hạng đã làm.)
 - Phiếu nhập và lịch sử nhập kho (`adjustStock` hiện chỉ đổi số), giá gốc/gạch chân, ngưỡng tồn riêng từng biến thể.
 - Xuất Excel/xuất file, luồng đổi trả, hoàn tiền thật.
@@ -320,7 +293,7 @@ export async function xAction(input: unknown): Promise<AdminActionResult> {
 
 | Nguyên tắc | Kết quả |
 |---|---|
-| Logic nghiệp vụ trong `src/server/services/*`; route/action chỉ validate rồi gọi service | ✅ Đã sửa một vi phạm: route `vnpay/return` từng truy vấn `db.order` trực tiếp, nay dùng `findOrderIdByCode()` |
+| Logic nghiệp vụ trong `src/server/services/*`; route/action chỉ validate rồi gọi service | ✅ Route chỉ validate rồi gọi service |
 | Client component không import `src/server/` | ✅ Không có file `"use client"` nào import `@/server/*`; mọi service và `db` có `import "server-only"` |
 | Service giỏ/đơn nhận context thuần, không phụ thuộc cookie hay request | ✅ Cầu nối request → context nằm ở `server/cart/context.ts` và `server/auth/session.ts` |
 | Bộ lọc sản phẩm hoàn toàn trong URL, một schema chung | ✅ `productFilterSchema` dùng ở `catalog.service` và `use-product-filters` |
@@ -334,12 +307,11 @@ export async function xAction(input: unknown): Promise<AdminActionResult> {
 2. **Cảnh báo build:** `middleware.ts` import `server/auth/jwt.ts` (`jose`), Next cảnh báo `DecompressionStream` không hỗ trợ Edge Runtime. Build vẫn qua vì middleware chỉ verify chữ ký; nên tách module verify chỉ dùng `jose/jwt/verify` hoặc kiểm tra trên môi trường edge thật.
 3. **Rate limit đăng nhập dùng `Map` trong bộ nhớ** (`server/auth/rate-limit.ts`): mất khi khởi động lại và không dùng chung giữa nhiều instance. Redis đã có (limiter của AI dùng); chuyển sang Redis (INCR + EXPIRE) trước khi chạy nhiều instance.
 4. **Chuyển khoản chưa có đối soát tự động:** đơn có hạn 24 giờ và tự huỷ khi quá hạn mà Admin chưa xác nhận (xem "Thanh toán & đơn hàng"), nhưng việc xác nhận đã nhận tiền vẫn do Admin làm tay. Đối soát tự động (webhook ngân hàng) để sau.
-5. **Huỷ đơn đã thanh toán chỉ đổi `paymentStatus` sang `REFUNDED`**, chưa hoàn tiền thật (VNPay refund API hoặc chuyển khoản lại); IPN thành công cho đơn đã huỷ chỉ `console.warn`. Cần quy trình hoàn tiền thủ công cho Admin.
+5. **Huỷ đơn đã thanh toán chỉ đổi `paymentStatus` sang `REFUNDED`**, chưa hoàn tiền thật (chuyển khoản lại thủ công). Cần quy trình hoàn tiền thủ công cho Admin.
 6. **Không dùng `viewTransition` và `loading.tsx`** (đã bỏ 2026-11-19): hai thứ này gây kẹt điều hướng ở production, xem mục "Chuyển động" ở trên. Kiểm lại bằng `npm run build` + `npm start` nếu muốn thêm hiệu ứng chuyển trang.
 
 ## Việc nên làm trước khi lên production
 
-- Đăng ký sandbox VNPay, điền `VNP_TMN_CODE`/`VNP_HASH_SECRET`, thử trọn luồng thanh toán + IPN (IPN cần URL công khai, ví dụ tunnel).
 - Đặt `JWT_SECRET` mạnh, `CRON_SECRET`, thông tin ngân hàng thật (`BANK_*` hiện là dữ liệu mẫu) và lịch gọi `/api/cron/expire-orders` (route này huỷ đơn quá hạn và cũng xoá thông báo Admin cũ hơn 30 ngày).
 - Chạy toàn bộ test (kể cả test tích hợp cần PostgreSQL thật) trong CI.
 - Chuyển rate limit đăng nhập sang Redis; đánh giá cảnh báo Edge của `jose`.

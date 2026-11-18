@@ -432,7 +432,7 @@ export async function changeOrderStatus(
         ? new OrderError("INVALID_STATUS_CHANGE", `Đơn không ở trạng thái ${from} nên không chuyển được sang ${to}`)
         : new OrderError("ORDER_NOT_FOUND", "Không tìm thấy đơn hàng")
     }
-    // Đơn COD giao thành công = đã thu tiền mặt: tự chuyển thanh toán sang PAID (chỉ khi còn PENDING; chuyển khoản/VNPay có luồng xác nhận riêng).
+    // Đơn COD giao thành công = đã thu tiền mặt: tự chuyển thanh toán sang PAID (chỉ khi còn PENDING; chuyển khoản có luồng xác nhận riêng).
     const collected =
       to === "DELIVERED"
         ? (await tx.order.updateMany({ where: { id: orderId, paymentMethod: "COD", paymentStatus: "PENDING" }, data: { paymentStatus: "PAID" } })).count === 1

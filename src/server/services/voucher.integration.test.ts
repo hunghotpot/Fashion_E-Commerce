@@ -54,7 +54,7 @@ async function buyer(price = 100_000, quantity = 2) {
   return { v, ...b }
 }
 
-const place = (b: Awaited<ReturnType<typeof buyer>>, voucherCode?: string | string[], paymentMethod: "COD" | "BANK_TRANSFER" | "VNPAY" = "COD") =>
+const place = (b: Awaited<ReturnType<typeof buyer>>, voucherCode?: string | string[], paymentMethod: "COD" | "BANK_TRANSFER" = "COD") =>
   createOrder(b.user, { addressId: b.addressId, paymentMethod, voucherCodes: voucherCode === undefined ? undefined : [voucherCode].flat() })
 
 describe("đặt đơn có voucher", () => {
@@ -201,11 +201,6 @@ describe("đặt đơn có voucher", () => {
     expect(order.total).toBe(order.subtotal + order.shippingFee - 30_000)
   })
 
-  it("chỉ áp dụng với COD và chuyển khoản: VNPay bị từ chối", async () => {
-    const vc = await makeVoucher()
-    await expect(place(await buyer(), vc.code, "VNPAY")).rejects.toMatchObject({ code: "PAYMENT_METHOD" })
-  })
-
   it("giới hạn danh mục: sai danh mục bị từ chối, đúng danh mục chỉ giảm trên phần hàng thuộc danh mục", async () => {
     const other = await db.category.create({ data: { name: `Khác ${PREFIX}`, slug: `khac-${PREFIX}-${++seq}`.toLowerCase() } })
     extraCategories.push(other.id)
@@ -251,7 +246,6 @@ describe("xem trước voucher", () => {
     const preview = await previewVoucher(b.user, { code: ` ${vc.code.toLowerCase()} ` })
     expect(preview).toMatchObject({ code: vc.code, discount: 25_000 })
     await expect(previewVoucher(b.user, { code: "KHONGCO" })).rejects.toBeInstanceOf(VoucherError)
-    await expect(previewVoucher(b.user, { code: vc.code, paymentMethod: "VNPAY" })).rejects.toMatchObject({ code: "PAYMENT_METHOD" })
   })
 })
 
@@ -346,16 +340,13 @@ describe("voucher dành cho bạn (dưới ô nhập mã)", () => {
     for (const v of [used, off, expired, future, full, first]) expect(codes).not.toContain(v.code)
   })
 
-  it("theo phương thức thanh toán: chuyển khoản dùng được, VNPay hiện nhưng chưa dùng được kèm lý do", async () => {
+  it("theo phương thức thanh toán: COD và chuyển khoản đều dùng được", async () => {
     const vc = await makeVoucher()
     const b = await buyer()
     const cod = (await listAvailableVouchers(b.user, { paymentMethod: "COD" })).find((v) => v.code === vc.code)
     const bank = (await listAvailableVouchers(b.user, { paymentMethod: "BANK_TRANSFER" })).find((v) => v.code === vc.code)
-    const vnpay = (await listAvailableVouchers(b.user, { paymentMethod: "VNPAY" })).find((v) => v.code === vc.code)
     expect(cod?.eligible).toBe(true)
     expect(bank?.eligible).toBe(true)
-    expect(vnpay).toMatchObject({ eligible: false })
-    expect(vnpay?.reason).toContain("COD")
   })
 
   it("theo phần hàng được chọn: voucher giới hạn danh mục chỉ dùng được khi phần chọn thuộc danh mục", async () => {

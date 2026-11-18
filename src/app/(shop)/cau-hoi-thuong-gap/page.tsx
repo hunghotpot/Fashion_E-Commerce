@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { formatVnd } from "@/lib/format"
-import { BANK_TRANSFER_WINDOW_HOURS, PAYMENT_WINDOW_MINUTES } from "@/lib/order"
+import { BANK_TRANSFER_WINDOW_HOURS } from "@/lib/order"
 import { defaultFreeShippingThreshold } from "@/lib/shop-settings"
 import { getShopSettings } from "@/server/services/shop-settings.service"
 
@@ -15,11 +15,11 @@ const buildFaq = (freeShippingFrom: number, flatShippingFee: number): { q: strin
   },
   {
     q: "Có những cách thanh toán nào?",
-    a: "Thanh toán khi nhận hàng (COD), chuyển khoản bằng mã VietQR, hoặc thẻ qua cổng VNPay.",
+    a: "Thanh toán khi nhận hàng (COD) hoặc chuyển khoản bằng mã VietQR.",
   },
   {
     q: "Đơn chưa thanh toán quá hạn thì sao?",
-    a: `Đơn VNPay cần được thanh toán trong ${PAYMENT_WINDOW_MINUTES} phút, đơn chuyển khoản cần được cửa hàng xác nhận đã nhận tiền trong ${BANK_TRANSFER_WINDOW_HOURS} giờ. Quá hạn, đơn tự động bị huỷ và số lượng hàng được hoàn lại kho.`,
+    a: `Đơn chuyển khoản cần được cửa hàng xác nhận đã nhận tiền trong ${BANK_TRANSFER_WINDOW_HOURS} giờ. Quá hạn, đơn tự động bị huỷ và số lượng hàng được hoàn lại kho.`,
   },
   {
     q: "Tôi có thể huỷ đơn không?",

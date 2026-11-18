@@ -11,7 +11,7 @@ function authorized(req: NextRequest): boolean {
   return given.length === expected.length && timingSafeEqual(given, expected)
 }
 
-// Huỷ đơn quá hạn thanh toán (VNPay 15 phút, chuyển khoản 24 giờ) + hoàn tồn kho, rồi dọn thông báo Admin quá hạn lưu.
+// Huỷ đơn quá hạn thanh toán (chuyển khoản 24 giờ) + hoàn tồn kho, rồi dọn thông báo Admin quá hạn lưu.
 // Gọi định kỳ (cron/scheduler): GET kèm "Authorization: Bearer <CRON_SECRET>".
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

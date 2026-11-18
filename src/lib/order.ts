@@ -1,20 +1,16 @@
 ﻿// Hằng số/hàm thuần về đơn hàng, dùng chung server/client.
 
-export const PAYMENT_METHODS = ["COD", "BANK_TRANSFER", "VNPAY"] as const
+export const PAYMENT_METHODS = ["COD", "BANK_TRANSFER"] as const
 export type CheckoutPaymentMethod = (typeof PAYMENT_METHODS)[number]
 
-/** Phương thức đặt được. VNPAY còn cần cấu hình VNP_* (xem isVnpayConfigured) — kiểm ở tầng gọi. */
-export const SUPPORTED_PAYMENT_METHODS: readonly CheckoutPaymentMethod[] = ["COD", "BANK_TRANSFER", "VNPAY"]
-
-/** Đơn VNPAY chưa thanh toán sau chừng này phút sẽ bị huỷ và hoàn tồn kho (cũng là hạn của link thanh toán). */
-export const PAYMENT_WINDOW_MINUTES = 15
+/** Phương thức đặt được. */
+export const SUPPORTED_PAYMENT_METHODS: readonly CheckoutPaymentMethod[] = ["COD", "BANK_TRANSFER"]
 
 /** Đơn chuyển khoản chưa được xác nhận đã nhận tiền sau chừng này giờ sẽ bị huỷ và hoàn tồn kho. */
 export const BANK_TRANSFER_WINDOW_HOURS = 24
 
-/** Hạn thanh toán của đơn chưa trả tiền: VNPAY 15 phút, chuyển khoản 24 giờ, phương thức khác không có hạn (null). */
+/** Hạn thanh toán của đơn chưa trả tiền: chuyển khoản 24 giờ, phương thức khác không có hạn (null). */
 export function paymentDeadline(method: string, createdAt: Date): Date | null {
-  if (method === "VNPAY") return new Date(createdAt.getTime() + PAYMENT_WINDOW_MINUTES * 60_000)
   if (method === "BANK_TRANSFER") return new Date(createdAt.getTime() + BANK_TRANSFER_WINDOW_HOURS * 3_600_000)
   return null
 }
@@ -22,7 +18,6 @@ export function paymentDeadline(method: string, createdAt: Date): Date | null {
 export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   COD: "Thanh toán khi nhận hàng (COD)",
   BANK_TRANSFER: "Chuyển khoản Ngân hàng / VietQR",
-  VNPAY: "Thẻ Tín dụng / Ghi nợ (VNPAY)",
   MOMO: "Ví MoMo",
 }
 
@@ -30,7 +25,6 @@ export const PAYMENT_METHOD_LABEL: Record<string, string> = {
 export const PAYMENT_METHOD_SHORT: Record<string, string> = {
   COD: "COD",
   BANK_TRANSFER: "Chuyển khoản VietQR",
-  VNPAY: "VNPay",
   MOMO: "MoMo",
 }
 

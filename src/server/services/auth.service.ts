@@ -1,7 +1,8 @@
 import "server-only"
 import { createHash, randomBytes, randomUUID } from "node:crypto"
 import bcrypt from "bcryptjs"
-import type { Prisma, Role, UserStatus } from "@prisma/client"
+import type { Prisma, Role, User, UserStatus } from "@prisma/client"
+import { avatarFromRow, type AvatarData } from "@/lib/avatar"
 import { REFRESH_TTL_SECONDS } from "@/lib/auth/constants"
 import type { ChangePasswordInput, LoginInput, RegisterInput, UpdateProfileInput } from "@/lib/validators/auth"
 import { signAccessToken } from "@/server/auth/jwt"
@@ -48,7 +49,12 @@ export interface PublicUser {
   name: string
   phone: string | null
   role: Role
+  /** Ảnh đại diện (chữ cái đầu, tạo sẵn hoặc tải lên). Không phải thông tin nhạy cảm nhưng AI vẫn không nhận (xem redact). */
+  avatar: AvatarData
 }
+
+/** Hàng User đủ để dựng PublicUser. */
+type PublicUserRow = Pick<User, "id" | "email" | "name" | "phone" | "role" | "avatarKind" | "avatarColor" | "avatarStyle" | "avatarSeed" | "avatarUrl">
 
 export interface AuthSession {
   user: PublicUser
@@ -59,13 +65,13 @@ export interface AuthSession {
 
 type Db = Prisma.TransactionClient
 
-interface UserRow extends PublicUser {
+interface UserRow extends PublicUserRow {
   passwordHash: string
   status: UserStatus
 }
 
-function toPublicUser(u: PublicUser): PublicUser {
-  return { id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role }
+function toPublicUser(u: PublicUserRow): PublicUser {
+  return { id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role, avatar: avatarFromRow(u) }
 }
 
 function hashToken(token: string): string {
@@ -83,7 +89,7 @@ function isUniqueViolation(e: unknown): boolean {
   return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002"
 }
 
-async function issueSession(user: PublicUser, familyId: string, client: Db = db): Promise<AuthSession> {
+async function issueSession(user: PublicUserRow, familyId: string, client: Db = db): Promise<AuthSession> {
   // 32 byte ngẫu nhiên (256 bit) → SHA-256 là đủ, không cần bcrypt cho token entropy cao.
   const refreshToken = randomBytes(32).toString("base64url")
   await client.refreshToken.create({
@@ -111,7 +117,7 @@ export async function register(input: RegisterInput): Promise<AuthSession> {
   if (existing) throw new AuthError("EMAIL_TAKEN", "Email này đã được đăng ký", "email")
 
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_COST)
-  let user: PublicUser
+  let user: PublicUserRow
   try {
     user = await db.user.create({
       data: { email: input.email, name: input.name, phone: input.phone, passwordHash },

@@ -46,11 +46,17 @@ enum OrderActorType {
   SYSTEM // job/cổng thanh toán (IPN), không gắn với user nào
 }
 
+// Cách hiển thị ảnh đại diện: chữ cái đầu (mặc định), ảnh tạo sẵn (DiceBear, sinh từ style + seed) hoặc ảnh tải lên.
+enum AvatarKind {
+  INITIALS
+  GENERATED
+  UPLOADED
+}
+
 enum PaymentMethod {
   COD
   BANK_TRANSFER
   MOMO
-  VNPAY
 }
 
 enum PaymentStatus {
@@ -70,6 +76,11 @@ model User {
   phone        String?
   role         Role       @default(CUSTOMER)
   status       UserStatus @default(ACTIVE) // LOCKED: Admin khoá, không đăng nhập/refresh được
+  avatarKind   AvatarKind @default(INITIALS)
+  avatarColor  String? // INITIALS: khoá màu nền trong bảng màu (src/lib/avatar.ts)
+  avatarStyle  String? // GENERATED: kiểu DiceBear trong danh sách cho phép
+  avatarSeed   String? // GENERATED: hạt giống ngẫu nhiên (không dùng email/tên thật)
+  avatarUrl    String? // UPLOADED: /uploads/avatars/<uuid>.<ext>
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -439,7 +450,7 @@ model OrderStatusHistory {
   toStatus    OrderStatus
   actorType   OrderActorType
   actorUserId String? // null khi SYSTEM; SetNull nếu user bị xoá
-  note        String? // lý do huỷ, nguồn thay đổi (vd "Thanh toán VNPay thành công")
+  note        String? // lý do huỷ, nguồn thay đổi (vd "Đã thu tiền COD khi giao hàng")
   createdAt   DateTime       @default(now())
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -510,7 +521,7 @@ enum NotificationType {
 
 enum AdminNotificationCategory {
   ORDER // đơn mới, đơn bị huỷ
-  PAYMENT // chờ xác nhận chuyển khoản, VNPay đã thanh toán
+  PAYMENT // chờ xác nhận chuyển khoản
   STOCK // biến thể xuống dưới ngưỡng sắp hết hàng
 }
 

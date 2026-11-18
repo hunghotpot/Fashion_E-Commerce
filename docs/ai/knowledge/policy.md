@@ -8,11 +8,7 @@ Nguồn: `src/lib/policies.ts`, `src/lib/shipping.ts`, `src/lib/order.ts`. Khi n
 
 ## Các phương thức thanh toán
 <!-- meta: {} -->
-Cửa hàng hỗ trợ ba phương thức thanh toán. Thứ nhất, thanh toán khi nhận hàng (COD). Thứ hai, chuyển khoản bằng cách quét mã VietQR ở trang thanh toán; đơn được xác nhận sau khi cửa hàng nhận được tiền. Thứ ba, thanh toán bằng thẻ qua cổng VNPay.
-
-## Hạn thanh toán khi dùng VNPay
-<!-- meta: {} -->
-Đơn thanh toán qua VNPay cần được thanh toán trong 15 phút. Quá hạn, đơn tự động bị huỷ và số lượng hàng được hoàn lại kho.
+Cửa hàng hỗ trợ hai phương thức thanh toán. Thứ nhất, thanh toán khi nhận hàng (COD). Thứ hai, chuyển khoản bằng cách quét mã VietQR ở trang thanh toán; đơn được xác nhận sau khi cửa hàng nhận được tiền.
 
 ## Chuyển khoản và thời điểm xác nhận đơn
 <!-- meta: {} -->

@@ -50,10 +50,10 @@ Bài test bắt buộc: thêm vào sản phẩm thử một mô tả chứa "B�
 ## 5. Không đưa PII và bí mật vào prompt
 | Tuyệt đối không | Cách bảo đảm |
 |---|---|
-| `passwordHash`, token (access/refresh), `JWT_SECRET`, API key, `CRON_SECRET`, `VNP_*` | Không bao giờ nằm trong DTO tool; `PublicUser` chỉ có `id,email,name,phone,role` và **cũng không đưa nguyên vào prompt** |
+| `passwordHash`, token (access/refresh), `JWT_SECRET`, API key, `CRON_SECRET` | Không bao giờ nằm trong DTO tool; `PublicUser` chỉ có `id,email,name,phone,role` và **cũng không đưa nguyên vào prompt** |
 | Email, SĐT, địa chỉ nhận hàng, ghi chú đơn | Tool trả bản rút gọn (ví dụ `getOrderStatus` chỉ trả mã đơn, trạng thái, tổng tiền, món hàng; địa chỉ chỉ nếu khách hỏi và khi đó chỉ quận/tỉnh) |
 | Số tài khoản/thông tin thanh toán | Không có trong tool |
-Nếu cần xưng hô, chỉ dùng tên (`name`). Có hàm `redactForPrompt(obj)` trung tâm trong `src/server/ai/core/redact.ts` (**đã có**) áp whitelist trường; test tự động ở `src/test/ai/guardrails.test.ts`: serialise mọi tool-result và khẳng định không chứa `passwordHash|tokenHash|@|VNP_|Bearer`.
+Nếu cần xưng hô, chỉ dùng tên (`name`). Có hàm `redactForPrompt(obj)` trung tâm trong `src/server/ai/core/redact.ts` (**đã có**) áp whitelist trường; test tự động ở `src/test/ai/guardrails.test.ts`: serialise mọi tool-result và khẳng định không chứa `passwordHash|tokenHash|@|JWT_|Bearer`.
 Số đo cơ thể (chiều cao, cân nặng…) khách nhập chỉ nằm trong hội thoại, không lưu vào DB.
 
 ## 6. Chặn chủ đề ngoài phạm vi

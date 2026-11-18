@@ -11,10 +11,9 @@ import { ReportTransferButton } from "@/components/checkout/report-transfer-butt
 import { buttonVariants } from "@/components/ui/button"
 import { formatAccountNo } from "@/lib/banks"
 import { formatDateTime, formatVnd } from "@/lib/format"
-import { PAYMENT_WINDOW_MINUTES, paymentDeadline, transferContent } from "@/lib/order"
+import { paymentDeadline, transferContent } from "@/lib/order"
 import { buildVietQrPayload } from "@/lib/vietqr"
 import { requireUser } from "@/server/auth/session"
-import { VNPAY_RESPONSE_MESSAGE } from "@/server/payment/vnpay"
 import { getOrder } from "@/server/services/order.service"
 import { getPaymentAccount } from "@/server/services/payment-account.service"
 import { expireUnpaidOrders, getTransferReportedAt } from "@/server/services/payment.service"
@@ -23,24 +22,13 @@ export const metadata: Metadata = { title: "Thanh toán đơn hàng", robots: { 
 
 const STEPS = ["Đặt đơn", "Chuyển khoản", "Cửa hàng xác nhận"] as const
 
-export default async function OrderPaymentPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>
-  searchParams: Promise<{ result?: string; code?: string }>
-}) {
+export default async function OrderPaymentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const user = await requireUser(`/orders/${id}/payment`)
-  await expireUnpaidOrders() // dọn đơn quá hạn (VNPay 15 phút, chuyển khoản 24 giờ) trước khi hiển thị, phòng khi cron chưa chạy
+  await expireUnpaidOrders() // dọn đơn quá hạn (chuyển khoản 24 giờ) trước khi hiển thị, phòng khi cron chưa chạy
   const order = await getOrder(user.id, id)
   if (!order) notFound()
 
-  if (order.paymentMethod === "VNPAY") {
-    // Đã thanh toán xong → trang thành công. Còn lại: báo kết quả / cho thanh toán lại.
-    if (order.paymentStatus === "PAID") redirect(`/orders/${id}/success`)
-    return <VnpayStatus order={order} search={await searchParams} />
-  }
   // Chỉ đơn chuyển khoản mới có mã QR. Admin đã xác nhận tiền (hoặc đơn không phải chuyển khoản) → trang thành công.
   if (order.paymentMethod !== "BANK_TRANSFER" || order.paymentStatus !== "PENDING") redirect(`/orders/${id}/success`)
   if (order.status === "CANCELLED") return <TransferExpired code={order.code} total={order.total} />
@@ -202,61 +190,3 @@ function TransferExpired({ code, total }: { code: string; total: number }) {
     </div>
   )
 }
-
-const RESULT_TITLE: Record<string, string> = {
-  failed: "Thanh toán không thành công",
-  invalid: "Không xác thực được kết quả thanh toán",
-  expired: "Đơn hàng đã hết hạn thanh toán",
-  unconfigured: "Thanh toán VNPay hiện chưa khả dụng",
-}
-
-// Đơn VNPAY chưa thanh toán xong: hiện kết quả lần thử vừa rồi và cho thanh toán lại trong cửa sổ 15 phút.
-function VnpayStatus({
-  order,
-  search,
-}: {
-  order: NonNullable<Awaited<ReturnType<typeof getOrder>>>
-  search: { result?: string; code?: string }
-}) {
-  const cancelled = order.status === "CANCELLED"
-  const title = cancelled ? RESULT_TITLE.expired : (RESULT_TITLE[search.result ?? ""] ?? "Đơn hàng đang chờ thanh toán VNPay")
-  const detail = cancelled
-    ? "Đơn hàng đã bị huỷ và sản phẩm đã được trả lại kho vì chưa thanh toán trong thời hạn. Bạn có thể đặt lại đơn mới."
-    : search.result === "failed"
-      ? (VNPAY_RESPONSE_MESSAGE[search.code ?? ""] ?? "Giao dịch không thành công.")
-      : null
-  const deadline = new Date(order.createdAt.getTime() + PAYMENT_WINDOW_MINUTES * 60_000)
-
-  return (
-    <div className="pb-16">
-      <div className="mx-auto mt-8 max-w-[560px] rounded-3xl border border-border bg-card px-6 py-12 text-center sm:px-10">
-        <h1 className="text-3xl font-semibold">{title}</h1>
-        <p className="mt-3 text-label text-muted-foreground">
-          Đơn <b className="text-foreground">#{order.code}</b> • {formatVnd(order.total)}
-        </p>
-        {detail && <p role="alert" className="mt-4 text-label font-semibold text-destructive">{detail}</p>}
-        {!cancelled && (
-          <>
-            <p className="mt-4 text-label text-muted-foreground">
-              Đơn sẽ tự huỷ nếu chưa thanh toán trước{" "}
-              <b className="text-foreground">
-                {deadline.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" })}
-              </b>{" "}
-              ({PAYMENT_WINDOW_MINUTES} phút kể từ lúc đặt).
-            </p>
-            {search.result !== "unconfigured" && (
-              <a href={`/api/payment/vnpay/pay?orderId=${order.id}`} className={`${buttonVariants({ size: "lg" })} mt-8 w-full`}>
-                Thanh toán lại với VNPay
-              </a>
-            )}
-          </>
-        )}
-        <Link href="/" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-4 w-full bg-card")}>
-          Về trang chủ
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-

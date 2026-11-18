@@ -5,8 +5,7 @@ import { calculateShippingFee } from "./shipping"
 
 describe("paymentDeadline", () => {
   const created = new Date("2026-11-17T03:00:00Z")
-  it("VNPay 15 phút, chuyển khoản 24 giờ, COD không có hạn", () => {
-    expect(paymentDeadline("VNPAY", created)?.toISOString()).toBe("2026-11-17T03:15:00.000Z")
+  it("chuyển khoản 24 giờ, COD không có hạn", () => {
     expect(paymentDeadline("BANK_TRANSFER", created)?.toISOString()).toBe("2026-11-18T03:00:00.000Z")
     expect(paymentDeadline("COD", created)).toBeNull()
   })

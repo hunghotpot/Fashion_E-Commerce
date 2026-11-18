@@ -58,7 +58,7 @@ export default async function AdminCustomerDetailPage({ params }: { params: Prom
       </Link>
 
       <section className="flex flex-wrap items-center gap-5 rounded-3xl border border-border bg-card p-6">
-        <CustomerAvatar initial={c.initial} tier={c.tier} locked={locked} className="size-16 text-lg" />
+        <CustomerAvatar name={c.name} avatar={c.avatar} tier={c.tier} locked={locked} className="size-16 text-lg" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-2xl font-semibold">{c.name}</h2>
           <p className="truncate text-label text-muted-foreground">{c.email}</p>

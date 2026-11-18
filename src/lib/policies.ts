@@ -1,5 +1,5 @@
 import { formatVnd } from "@/lib/format"
-import { BANK_TRANSFER_WINDOW_HOURS, PAYMENT_WINDOW_MINUTES } from "@/lib/order"
+import { BANK_TRANSFER_WINDOW_HOURS } from "@/lib/order"
 import { FLAT_SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping"
 
 /*
@@ -48,20 +48,18 @@ export const buildPolicies = ({ freeShippingFrom, flatShippingFee }: ShippingTer
   {
     slug: "thanh-toan",
     title: "Chính sách thanh toán",
-    intro: "Cửa hàng hiện hỗ trợ ba phương thức thanh toán.",
+    intro: "Cửa hàng hiện hỗ trợ hai phương thức thanh toán.",
     sections: [
       {
         heading: "Phương thức thanh toán",
         body: [
           "Thanh toán khi nhận hàng (COD).",
           "Chuyển khoản: quét mã VietQR ở trang thanh toán. Đơn được xác nhận sau khi cửa hàng nhận được tiền.",
-          "Thẻ qua cổng VNPay.",
         ],
       },
       {
         heading: "Hạn thanh toán",
         body: [
-          `Đơn thanh toán qua VNPay cần được thanh toán trong ${PAYMENT_WINDOW_MINUTES} phút. Quá hạn, đơn tự động bị huỷ và số lượng hàng được hoàn lại kho.`,
           `Đơn chuyển khoản cần được cửa hàng xác nhận đã nhận tiền trong ${BANK_TRANSFER_WINDOW_HOURS} giờ. Quá hạn, đơn tự động bị huỷ và hàng được hoàn lại kho; bạn có thể đặt lại đơn mới.`,
         ],
       },

@@ -11,7 +11,7 @@ const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
 // Số điện thoại Việt Nam: 0xxxxxxxxx hoặc +84xxxxxxxxx, cho phép dấu cách, chấm, gạch ngang giữa các số.
 const PHONE = /(?<![\d])(?:\+?84|0)(?:[\s.-]?\d){8,10}(?![\d])/g
 const BEARER = /Bearer\s+[A-Za-z0-9._~+/=-]+/gi
-const ENV_SECRET = /\b(?:VNP|JWT|CRON|AI)_[A-Z_]+\b(?:\s*[=:]\s*\S+)?/g
+const ENV_SECRET = /\b(?:JWT|CRON|AI)_[A-Z_]+\b(?:\s*[=:]\s*\S+)?/g
 
 const MAX_TEXT_CHARS = 600
 const MAX_DEPTH = 6

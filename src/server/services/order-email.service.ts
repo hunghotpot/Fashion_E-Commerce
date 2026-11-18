@@ -10,7 +10,7 @@ import type { OrderAddressSnapshot, OrderStatusValue } from "@/types/order"
 
 /*
  * Email cho chủ đơn khi đơn được đặt (PENDING) hoặc đổi trạng thái. MẶC ĐỊNH TẮT (MAIL_ENABLED, xem src/server/mail/env.ts).
- * Gọi SAU KHI transaction đã commit (đặt đơn / đổi trạng thái / huỷ / VNPay thành công), không chờ kết quả:
+ * Gọi SAU KHI transaction đã commit (đặt đơn / đổi trạng thái / huỷ), không chờ kết quả:
  * email lỗi hay chậm không được làm hỏng đơn hàng. Hàm này không bao giờ ném lỗi; chỉ log mã đơn và lý do, không log địa chỉ hay nội dung.
  */
 export async function sendOrderEmail(orderId: string, status: OrderStatusValue, event?: "PAYMENT_CONFIRMED"): Promise<void> {

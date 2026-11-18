@@ -4,12 +4,14 @@ import Link from "next/link"
 import { Popover } from "@base-ui/react/popover"
 import { BellIcon } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
+import { UserAvatar } from "@/components/account/user-avatar"
 import { useMarkNotificationsRead, useNotifications } from "@/hooks/use-notifications"
+import type { AvatarData } from "@/lib/avatar"
 import { formatRelativeTime } from "@/lib/notification"
 
 // Chuông thông báo trên header (chỉ hiện khi đã đăng nhập). Dữ liệu từ /api/notifications; bấm một thông báo hoặc
 // "Đánh dấu đã đọc" thì gọi /api/notifications/read. Lỗi tải thì coi như chưa có thông báo, không chặn trang.
-export function NotificationButton() {
+export function NotificationButton({ user }: { user?: { name: string; avatar: AvatarData } }) {
   const { data } = useNotifications()
   const { mutate: markRead } = useMarkNotificationsRead()
   const items = data?.items ?? []
@@ -37,7 +39,10 @@ export function NotificationButton() {
         <Popover.Positioner align="end" sideOffset={8} className="isolate z-50 outline-none">
           <Popover.Popup className="w-[min(22rem,calc(100vw-2rem))] origin-(--transform-origin) overflow-hidden bg-popover text-popover-foreground shadow-float ring-1 ring-border duration-150 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95">
             <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-              <Popover.Title className="font-heading text-xl font-semibold">Thông báo</Popover.Title>
+              <div className="flex min-w-0 items-center gap-3">
+                {user && <UserAvatar name={user.name} avatar={user.avatar} className="size-8 text-2xs" />}
+                <Popover.Title className="font-heading text-xl font-semibold">Thông báo</Popover.Title>
+              </div>
               {unread > 0 && (
                 <button
                   type="button"

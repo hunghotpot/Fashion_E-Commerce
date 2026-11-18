@@ -35,7 +35,6 @@ interface FormValues {
 
 const PAYMENTS: { value: CheckoutPaymentMethod; title: string; hint?: string }[] = [
   { value: "COD", title: "Thanh toán khi nhận hàng (COD)", hint: "Tiền mặt khi giao" },
-  { value: "VNPAY", title: "Thẻ Tín dụng / Ghi nợ (Visa, Mastercard, JCB)" },
   { value: "BANK_TRANSFER", title: "Chuyển khoản Ngân hàng / Quét mã VietQR / Ví điện tử" },
 ]
 
@@ -45,7 +44,6 @@ const addressText = (a: AddressDTO) => [a.street, a.ward, a.province].join(", ")
 export function CheckoutForm({
   source,
   addresses,
-  vnpayEnabled,
   items,
   itemCount,
   subtotal,
@@ -55,8 +53,6 @@ export function CheckoutForm({
   /** Nguồn hàng đang thanh toán (cả giỏ / dòng được chọn / mua ngay). */
   source?: OrderSource
   addresses: AddressDTO[]
-  /** VNPay đã cấu hình (VNP_*) ở server; chưa thì khoá lựa chọn thẻ. */
-  vnpayEnabled: boolean
   items: CartLine[]
   itemCount: number
   subtotal: number
@@ -123,9 +119,7 @@ export function CheckoutForm({
       voucher.clear("PRODUCT") // mã đã dùng cho đơn này
       voucher.clear("SHIPPING")
       await queryClient.invalidateQueries({ queryKey: CART_KEY }) // giỏ đã được xoá ở server
-      // Sang cổng VNPay: điều hướng cả trang (route /api trả redirect ra ngoài), không dùng router của Next.
-      if (res.redirectTo.startsWith("/api/")) window.location.assign(res.redirectTo)
-      else router.push(res.redirectTo)
+      router.push(res.redirectTo)
       return
     }
     if (res.code === "VOUCHER_INVALID") {
@@ -250,7 +244,7 @@ export function CheckoutForm({
           </h2>
           <div role="radiogroup" aria-label="Phương thức thanh toán" className="space-y-3">
             {PAYMENTS.map((p) => {
-              const enabled = SUPPORTED_PAYMENT_METHODS.includes(p.value) && (p.value !== "VNPAY" || vnpayEnabled)
+              const enabled = SUPPORTED_PAYMENT_METHODS.includes(p.value)
               const checked = paymentMethod === p.value
               return (
                 <label
@@ -272,13 +266,6 @@ export function CheckoutForm({
                   />
                   <span className="flex-1 text-nav font-semibold">{p.title}</span>
                   {p.hint && <span className="text-label text-muted-foreground">{p.hint}</span>}
-                  {p.value === "VNPAY" && (
-                    <span className="flex items-center gap-2">
-                      {!enabled && <span className="text-xs font-semibold text-muted-foreground">Sắp ra mắt</span>}
-                      <span className="rounded-sm bg-ink px-2 py-1 text-[9px] font-semibold text-white">VISA</span>
-                      <span className="rounded-sm bg-primary px-2 py-1 text-[9px] font-semibold text-white">MC</span>
-                    </span>
-                  )}
                 </label>
               )
             })}

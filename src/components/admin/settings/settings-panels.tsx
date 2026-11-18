@@ -75,7 +75,7 @@ export function PaymentPanel({ account }: { account: PaymentAccount }) {
             <div>
               <p className="text-label font-semibold">{PAYMENT_METHOD_LABEL[m] ?? m}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {m === "VNPAY" ? "Cần cấu hình biến môi trường VNP_* ở máy chủ." : m === "BANK_TRANSFER" ? "Tài khoản nhận tiền cấu hình ngay phía trên; khách quét VietQR, Admin xác nhận tay khi tiền về." : "Thu tiền khi giao hàng."}
+                {m === "BANK_TRANSFER" ? "Tài khoản nhận tiền cấu hình ngay phía trên; khách quét VietQR, Admin xác nhận tay khi tiền về." : "Thu tiền khi giao hàng."}
               </p>
             </div>
             <StatusPill tone="success">Đang hỗ trợ</StatusPill>

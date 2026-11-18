@@ -7,7 +7,7 @@ import { formatVnd } from "@/lib/format"
 export const VOUCHER_TYPES = ["CASH", "PERCENT", "FREESHIP"] as const
 export type VoucherTypeValue = (typeof VOUCHER_TYPES)[number]
 
-/** Phương thức thanh toán được dùng voucher: COD và chuyển khoản (số tiền QR là tổng sau giảm). VNPay chưa mở. */
+/** Phương thức thanh toán được dùng voucher: COD và chuyển khoản (số tiền QR là tổng sau giảm). */
 export const VOUCHER_PAYMENT_METHODS: readonly string[] = ["COD", "BANK_TRANSFER"]
 
 export const VOUCHER_TYPE_LABEL: Record<VoucherTypeValue, string> = {

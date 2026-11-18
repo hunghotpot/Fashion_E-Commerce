@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto"
 import path from "node:path"
 
 /*
- * Tải ảnh sản phẩm của Admin vào public/uploads.
+ * Tải ảnh vào public/uploads: ảnh sản phẩm của Admin ở uploads/products, ảnh đại diện của khách ở uploads/avatars.
+ * (File ở gốc uploads/ là ảnh sản phẩm tải từ trước khi chia thư mục; route /uploads/[name] vẫn phục vụ chúng.)
  * File này chỉ gồm HÀM THUẦN (nhận diện loại file, kiểm tên, sinh tên) và hằng số để test được không cần DOM/ổ đĩa;
  * việc đọc/ghi file nằm ở route handler (src/app/api/admin/uploads, src/app/uploads/[name]).
  * Nguyên tắc: không tin Content-Type, đuôi file hay tên file do client gửi. Loại file chỉ được quyết định bởi
@@ -11,6 +12,15 @@ import path from "node:path"
  */
 
 export const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
+
+/** Thư mục con theo loại ảnh. */
+export const UPLOAD_FOLDERS = ["products", "avatars"] as const
+export type UploadFolder = (typeof UPLOAD_FOLDERS)[number]
+export const isUploadFolder = (v: string): v is UploadFolder => (UPLOAD_FOLDERS as readonly string[]).includes(v)
+export const uploadDirFor = (folder: UploadFolder) => path.join(UPLOAD_DIR, folder)
+
+/** Ảnh đại diện: đã được trình duyệt cắt vuông và nén (≈256px), nên giới hạn nhỏ hơn nhiều so với ảnh sản phẩm. */
+export const AVATAR_MAX_BYTES = 512 * 1024
 
 /** Dung lượng tối đa mỗi ảnh. */
 export const UPLOAD_MAX_BYTES = 5 * 1024 * 1024
@@ -63,5 +73,5 @@ export function contentTypeForUploadName(name: string): string | null {
   return m[1] === "jpg" ? UPLOAD_CONTENT_TYPE.jpeg : m[1] === "png" ? UPLOAD_CONTENT_TYPE.png : UPLOAD_CONTENT_TYPE.webp
 }
 
-/** URL công khai của file đã lưu. */
-export const uploadUrl = (name: string) => `/uploads/${name}`
+/** URL công khai của file đã lưu (mặc định ảnh sản phẩm). */
+export const uploadUrl = (name: string, folder: UploadFolder = "products") => `/uploads/${folder}/${name}`

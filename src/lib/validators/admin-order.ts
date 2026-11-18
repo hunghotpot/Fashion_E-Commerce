@@ -4,7 +4,7 @@ import { orderIdSchema, ORDER_STATUSES } from "@/lib/validators/order-list"
 /* Validator cho màn Quản lý Đơn hàng của Admin. Bộ lọc nằm trong URL nên lỏng: giá trị sai rơi về mặc định. */
 
 export const ADMIN_PAYMENT_STATUSES = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const
-export const ADMIN_PAYMENT_METHODS = ["COD", "BANK_TRANSFER", "VNPAY", "MOMO"] as const
+export const ADMIN_PAYMENT_METHODS = ["COD", "BANK_TRANSFER", "MOMO"] as const
 
 export const DEFAULT_ADMIN_ORDER_PAGE_SIZE = 10
 export const MAX_ADMIN_ORDER_PAGE_SIZE = 50

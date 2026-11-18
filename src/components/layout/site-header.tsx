@@ -28,7 +28,7 @@ export function SiteHeader({ user = null }: SiteHeaderProps) {
           {user ? (
             <>
               <div className="hidden sm:block">
-                <NotificationButton />
+                <NotificationButton user={{ name: user.name, avatar: user.avatar }} />
               </div>
               <AccountMenu user={user} />
               <CartButton />

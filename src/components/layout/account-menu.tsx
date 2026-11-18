@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import Link from "next/link"
-import { LayoutDashboardIcon, LogOutIcon, MapPinIcon, ShoppingBagIcon, TicketPercentIcon, UserIcon, UserRoundIcon } from "lucide-react"
+import { LayoutDashboardIcon, LogOutIcon, MapPinIcon, ShoppingBagIcon, TicketPercentIcon, UserRoundIcon } from "lucide-react"
 import { logoutAction } from "@/app/actions/auth"
 import { TierBadge } from "@/components/account/tier-badge"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { UserAvatar } from "@/components/account/user-avatar"
+import type { AvatarData } from "@/lib/avatar"
 import { CUSTOMER_TIER_LABEL, customerTier, spendToNextTier, type TierRules } from "@/lib/customer-tier"
 import { formatVnd } from "@/lib/format"
 
@@ -25,6 +27,8 @@ export interface AccountMenuUser {
   totalSpend?: number
   /** Mức chi tiêu từng hạng (cấu hình ở Admin); thiếu thì dùng mặc định. */
   tierRules?: TierRules
+  /** Ảnh đại diện (chữ cái đầu, tạo sẵn hoặc tải lên). */
+  avatar: AvatarData
 }
 
 export function AccountMenu({ user }: { user: AccountMenuUser }) {
@@ -34,13 +38,14 @@ export function AccountMenu({ user }: { user: AccountMenuUser }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="secondary" size="icon-sm" aria-label={`Tài khoản của ${user.name}`} />}
+        render={<Button variant="secondary" size="icon-sm" aria-label={`Tài khoản của ${user.name}`} className="overflow-hidden p-0" />}
       >
-        <UserIcon />
+        <UserAvatar name={user.name} avatar={user.avatar} className="size-full text-xs" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
+            <UserAvatar name={user.name} avatar={user.avatar} className="mb-1.5 size-12 text-base" />
             <span className="truncate text-sm font-semibold text-foreground">{user.name}</span>
             <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
             {user.role === "CUSTOMER" && (

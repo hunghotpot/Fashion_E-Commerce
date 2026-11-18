@@ -1,6 +1,7 @@
-import { LogOutIcon, UserIcon } from "lucide-react"
+import { LogOutIcon } from "lucide-react"
 import { logoutAction } from "@/app/actions/auth"
 import { AccountNav } from "@/components/account/account-nav"
+import { AvatarPicker } from "@/components/account/avatar-picker"
 import { Badge } from "@/components/ui/badge"
 import { TierBadge } from "@/components/account/tier-badge"
 import { TierProgress } from "@/components/account/tier-progress"
@@ -16,9 +17,7 @@ export function AccountSidebar({ user, orderCount, totalSpend, tierRules }: { us
   return (
     <aside className="flex flex-col gap-6 rounded-3xl border border-border bg-card p-8 lg:self-start">
       <div className="flex flex-col items-center gap-3 border-b border-border pb-6 text-center">
-        <div className="grid size-28 place-items-center rounded-full bg-ink text-white">
-          <UserIcon className="size-14" aria-hidden />
-        </div>
+        <AvatarPicker name={user.name} avatar={user.avatar} />
         <p className="mt-2 text-lg font-semibold">{user.name}</p>
         <p className="text-xs break-all text-muted-foreground">{user.email}</p>
         {user.role === "ADMIN" ? (

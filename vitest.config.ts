@@ -24,11 +24,6 @@ export default defineConfig({
       ...loadEnv("test", process.cwd(), ""),
       DATABASE_URL: testDatabaseUrl(),
       JWT_SECRET: "test-secret-test-secret-test-secret-123456",
-      // Giá trị giả cố định: test không bao giờ dùng secret VNPay thật trong .env.
-      VNP_TMN_CODE: "TESTTMN1",
-      VNP_HASH_SECRET: "test-vnpay-hash-secret-0123456789",
-      VNP_URL: "https://sandbox.test/vpcpay.html",
-      VNP_RETURN_URL: "http://localhost:3000/api/payment/vnpay/return",
     },
   },
 })

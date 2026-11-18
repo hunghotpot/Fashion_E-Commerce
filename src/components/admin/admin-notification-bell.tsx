@@ -24,7 +24,7 @@ const chip = (active: boolean) =>
   )
 
 /**
- * Chuông Admin: hộp thư sự kiện (đơn mới/huỷ, chờ xác nhận chuyển khoản, VNPay, sắp hết hàng). Dữ liệu do layout nạp sẵn (server);
+ * Chuông Admin: hộp thư sự kiện (đơn mới/huỷ, chờ xác nhận chuyển khoản, sắp hết hàng). Dữ liệu do layout nạp sẵn (server);
  * "Đánh dấu đã đọc" gọi Server Action rồi làm mới trang. Lọc theo loại ngay trên 20 thông báo mới nhất; xem đủ ở /admin/notifications.
  */
 export function AdminNotificationBell({ data }: { data: AdminNotificationList }) {

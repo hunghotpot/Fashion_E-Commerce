@@ -19,7 +19,7 @@ type Pay = "PENDING" | "PAID" | "REFUNDED"
 function makeOrder(
   userId: string,
   total: number,
-  o: { status: "PENDING" | "DELIVERED" | "CANCELLED"; paymentMethod: "COD" | "VNPAY"; paymentStatus: Pay }
+  o: { status: "PENDING" | "DELIVERED" | "CANCELLED"; paymentMethod: "COD" | "BANK_TRANSFER"; paymentStatus: Pay }
 ) {
   return db.order.create({
     data: {
@@ -40,11 +40,11 @@ describe("getDashboardStats", () => {
     const before = await getDashboardStats(now)
     const { user } = await fx.makeBuyer([])
 
-    await makeOrder(user.id, 1_000_000, { status: "PENDING", paymentMethod: "VNPAY", paymentStatus: "PAID" }) // tính
+    await makeOrder(user.id, 1_000_000, { status: "PENDING", paymentMethod: "BANK_TRANSFER", paymentStatus: "PAID" }) // tính
     await makeOrder(user.id, 200_000, { status: "DELIVERED", paymentMethod: "COD", paymentStatus: "PENDING" }) // tính (COD đã giao)
     await makeOrder(user.id, 300_000, { status: "PENDING", paymentMethod: "COD", paymentStatus: "PENDING" }) // chưa thu
-    await makeOrder(user.id, 400_000, { status: "CANCELLED", paymentMethod: "VNPAY", paymentStatus: "PAID" }) // đã huỷ
-    await makeOrder(user.id, 500_000, { status: "DELIVERED", paymentMethod: "VNPAY", paymentStatus: "REFUNDED" }) // hoàn tiền
+    await makeOrder(user.id, 400_000, { status: "CANCELLED", paymentMethod: "BANK_TRANSFER", paymentStatus: "PAID" }) // đã huỷ
+    await makeOrder(user.id, 500_000, { status: "DELIVERED", paymentMethod: "BANK_TRANSFER", paymentStatus: "REFUNDED" }) // hoàn tiền
 
     const after = await getDashboardStats(now)
     expect(after.revenue.total - before.revenue.total).toBe(1_200_000)

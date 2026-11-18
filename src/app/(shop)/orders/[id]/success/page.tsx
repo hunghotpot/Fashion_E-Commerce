@@ -23,7 +23,6 @@ export default async function OrderSuccessPage({ params }: { params: Promise<{ i
   const productsText = first
     ? `${first.productName} (Size ${first.size})${order.items.length > 1 ? ` + ${order.items.length - 1} sản phẩm khác` : ""}`
     : "—"
-  const awaitingVnpay = order.paymentMethod === "VNPAY" && order.paymentStatus === "PENDING" && order.status !== "CANCELLED"
   const awaitingTransfer = order.paymentMethod === "BANK_TRANSFER" && order.paymentStatus === "PENDING" && order.status !== "CANCELLED"
 
   return (
@@ -48,11 +47,6 @@ export default async function OrderSuccessPage({ params }: { params: Promise<{ i
         <p className="mx-auto mt-4 max-w-md text-center text-label text-muted-foreground">
           Cảm ơn bạn đã đặt hàng! Đơn hàng của bạn đã được tiếp nhận và đang xử lý.
         </p>
-        {awaitingVnpay && (
-          <p className="mt-4 text-center text-label font-semibold text-warning">
-            Đang chờ VNPay xác nhận thanh toán, trạng thái đơn sẽ cập nhật trong giây lát.
-          </p>
-        )}
         {awaitingTransfer && (
           <p className="mt-4 text-center text-label font-semibold text-warning">
             Đơn sẽ được xác nhận sau khi cửa hàng nhận được chuyển khoản.{" "}

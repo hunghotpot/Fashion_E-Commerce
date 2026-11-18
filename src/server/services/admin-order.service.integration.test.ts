@@ -31,7 +31,7 @@ async function expectOrderError(promise: Promise<unknown>, code: string) {
 }
 
 /** Tạo một đơn thật qua createOrder; trả cả variant để kiểm kho. */
-async function placeOrder(opts: { paymentMethod?: "COD" | "BANK_TRANSFER" | "VNPAY"; quantity?: number; stock?: number } = {}) {
+async function placeOrder(opts: { paymentMethod?: "COD" | "BANK_TRANSFER"; quantity?: number; stock?: number } = {}) {
   const v = await makeVariant(opts.stock ?? 5, 100_000)
   const buyer = await makeBuyer([{ variantId: v.id, quantity: opts.quantity ?? 2 }])
   const order = await createOrder(buyer.user, { addressId: buyer.addressId, paymentMethod: opts.paymentMethod ?? "COD" })

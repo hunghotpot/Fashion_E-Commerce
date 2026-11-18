@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { redactForPrompt, redactText } from "./redact"
 
-// Khẳng định trong docs/ai/05 mục 5: không chứa passwordHash|tokenHash|@|VNP_|Bearer.
-const FORBIDDEN = /passwordHash|tokenHash|@|VNP_|Bearer\s+[A-Za-z0-9]/
+// Khẳng định trong docs/ai/05 mục 5: không chứa passwordHash|tokenHash|@|JWT_|Bearer.
+const FORBIDDEN = /passwordHash|tokenHash|@|JWT_|Bearer\s+[A-Za-z0-9]/
 
 describe("redactText", () => {
   it("che email, số điện thoại và token", () => {
@@ -10,7 +10,7 @@ describe("redactText", () => {
     expect(redactText("gọi +84 987 654 321 nhé")).toBe("gọi [sđt] nhé")
     expect(redactText("gọi 098-765-4321")).toBe("gọi [sđt]")
     expect(redactText("Authorization: Bearer abc.def-123")).toBe("Authorization: Bearer [ẩn]")
-    expect(redactText("VNP_HASH_SECRET=abcdef")).toBe("[ẩn]")
+    expect(redactText("JWT_SECRET=abcdef")).toBe("[ẩn]")
   })
 
   it("không che giá tiền, mã đơn, size hay số đo", () => {

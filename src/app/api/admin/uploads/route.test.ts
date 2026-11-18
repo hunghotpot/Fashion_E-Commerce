@@ -48,8 +48,8 @@ describe("POST /api/admin/uploads", () => {
     expect(res.status).toBe(201)
     const body = (await res.json()) as { url: string; urls: string[] }
     expect(body.urls).toHaveLength(2)
-    expect(body.urls[0]).toMatch(/^\/uploads\/[0-9a-f-]{36}\.jpg$/)
-    expect(body.urls[1]).toMatch(/^\/uploads\/[0-9a-f-]{36}\.png$/) // đuôi theo nội dung thật, không theo tên .jpg của client
+    expect(body.urls[0]).toMatch(/^\/uploads\/products\/[0-9a-f-]{36}\.jpg$/)
+    expect(body.urls[1]).toMatch(/^\/uploads\/products\/[0-9a-f-]{36}\.png$/) // đuôi theo nội dung thật, không theo tên .jpg của client
     expect(body.url).toBe(body.urls[0])
     expect(writeFile).toHaveBeenCalledTimes(2)
     for (const call of writeFile.mock.calls) {

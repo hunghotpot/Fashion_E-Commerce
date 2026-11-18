@@ -6,7 +6,6 @@ import { summarizeCart, type CartView } from "@/lib/cart"
 import { sourceFromQuery, sourceToQuery } from "@/lib/order-source"
 import { getShippingFee } from "@/server/services/customer-spend"
 import { requireUser } from "@/server/auth/session"
-import { isVnpayConfigured } from "@/server/payment/vnpay-config"
 import { listAddresses } from "@/server/services/address.service"
 import { getBuyNowCart, getCart } from "@/server/services/cart.service"
 
@@ -52,7 +51,6 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       <CheckoutForm
         source={source}
         addresses={addresses}
-        vnpayEnabled={isVnpayConfigured()}
         items={cart.items}
         itemCount={cart.itemCount}
         subtotal={cart.subtotal}
