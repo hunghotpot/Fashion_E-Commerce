@@ -73,6 +73,14 @@ export function initialSelection(variants: VariantLike[]): Selection {
   return sel
 }
 
+/** Các trục còn thiếu để xác định đúng một biến thể, theo thứ tự màu rồi size. Sản phẩm không có màu (hoặc size) thì trục đó không bao giờ thiếu. */
+export function missingAxes(variants: VariantLike[], sel: Selection): Axis[] {
+  const out: Axis[] = []
+  if (!sel.color && listColors(variants).length > 0) out.push("color")
+  if (!sel.size && listSizes(variants).length > 0) out.push("size")
+  return out
+}
+
 /** Khoảng giá của các biến thể khớp lựa chọn hiện tại (chưa chọn gì = cả sản phẩm). */
 export function priceRange(variants: VariantLike[], sel: Selection): { min: number; max: number } {
   const exact = findVariant(variants, sel)

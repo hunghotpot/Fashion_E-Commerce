@@ -149,7 +149,9 @@ export function buildProducts(): BuiltProduct[] {
         }
       }
 
-      const imageCount = 2 + Math.floor(rand() * 3); // 2-4
+      // 5-8 ảnh để thấy đủ bố cục thư viện ảnh (dải ảnh nhỏ, vuốt ngang). Giữ ĐÚNG một lần gọi rand() ở đây để các giá trị sinh sau
+      // (tồn kho, size) không đổi so với trước. URL ảnh cố định theo (nhóm, tên, số thứ tự) nên ảnh cũ 1-4 vẫn khớp, chỉ thêm ảnh mới phía sau.
+      const imageCount = 5 + Math.floor(rand() * 4); // 5-8
       const images = Array.from({ length: imageCount }, (_, n) => ({
         url: placeholderImageUrl(groupKey, p.name, n + 1),
         alt: `${p.name} - ảnh ${n + 1}`,

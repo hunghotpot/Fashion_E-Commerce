@@ -26,6 +26,8 @@ export interface ProductCardData {
   /** Các màu có trong biến thể (không trùng). */
   colors: ProductColor[]
   inStock: boolean
+  /** Sao trung bình và số đánh giá đang hiển thị; vắng khi sản phẩm chưa có đánh giá. */
+  rating?: { average: number; count: number }
 }
 
 export interface ProductColor {

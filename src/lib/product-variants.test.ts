@@ -4,6 +4,7 @@ import {
   imagesForColor,
   initialSelection,
   listSizes,
+  missingAxes,
   optionState,
   priceRange,
   select,
@@ -79,6 +80,22 @@ describe("giá, size, chọn sẵn", () => {
   it("chọn sẵn khi chỉ có 1 màu / 1 size", () => {
     expect(initialSelection([v("Đen", "Free size", 3)])).toEqual({ color: "Đen", size: "Free size" })
     expect(initialSelection(variants)).toEqual({})
+  })
+})
+
+describe("missingAxes", () => {
+  it("liệt kê trục còn thiếu theo thứ tự màu rồi size", () => {
+    expect(missingAxes(variants, {})).toEqual(["color", "size"])
+    expect(missingAxes(variants, { color: "Đen" })).toEqual(["size"])
+    expect(missingAxes(variants, { size: "M" })).toEqual(["color"])
+    expect(missingAxes(variants, { color: "Đen", size: "M" })).toEqual([])
+  })
+  it("sản phẩm chỉ có một màu và một size đã được chọn sẵn thì không thiếu gì", () => {
+    const one = [v("Đen", "Free size", 3)]
+    expect(missingAxes(one, initialSelection(one))).toEqual([])
+  })
+  it("không có biến thể nào thì không có trục nào để thiếu", () => {
+    expect(missingAxes([], {})).toEqual([])
   })
 })
 

@@ -9,6 +9,7 @@ import {
 } from "@/lib/validators/product-filter"
 import { sizeRank } from "@/lib/product-variants"
 import { pickSizeChartRows } from "@/lib/size-chart"
+import { getRatingsForProducts } from "./review.service"
 import type {
   CategoryCardData,
   CategoryDetail,
@@ -57,6 +58,16 @@ function toProductCard(p: ProductCardRow): ProductCardData {
     colors: uniqueColors(p.variants),
     inStock: p.variants.some((v) => v.stock > 0),
   }
+}
+
+/** Gắn sao trung bình vào các thẻ sản phẩm bằng MỘT truy vấn gộp (không N+1). Sản phẩm chưa có đánh giá giữ nguyên, không có khoá `rating`. */
+async function withRatings(cards: ProductCardData[]): Promise<ProductCardData[]> {
+  if (cards.length === 0) return cards
+  const ratings = await getRatingsForProducts(cards.map((c) => c.id))
+  return cards.map((c) => {
+    const rating = ratings.get(c.id)
+    return rating ? { ...c, rating } : c
+  })
 }
 
 /** Category gốc + con, dùng cho menu header / footer. */
@@ -110,7 +121,7 @@ export async function getNewProducts(limit = 8): Promise<ProductCardData[]> {
     take,
     select: productCardSelect,
   })
-  return rows.map(toProductCard)
+  return withRatings(rows.map(toProductCard))
 }
 
 export async function getFeaturedProducts(limit = 8): Promise<ProductCardData[]> {
@@ -121,9 +132,22 @@ export async function getFeaturedProducts(limit = 8): Promise<ProductCardData[]>
     take,
     select: productCardSelect,
   })
-  return rows.map(toProductCard)
+  return withRatings(rows.map(toProductCard))
 }
 
+
+/** Thẻ sản phẩm theo danh sách id, GIỮ đúng thứ tự `ids`; bỏ qua id không có hoặc sản phẩm đã ẩn. Dùng cho danh sách yêu thích. */
+export async function getProductCardsByIds(ids: string[]): Promise<ProductCardData[]> {
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return []
+  const rows = await db.product.findMany({ where: { id: { in: unique }, isActive: true }, select: productCardSelect })
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const ordered = unique.flatMap((id) => {
+    const row = byId.get(id)
+    return row ? [toProductCard(row)] : []
+  })
+  return withRatings(ordered)
+}
 
 export async function getCategoryBySlug(slug: string): Promise<CategoryDetail | null> {
   return db.category.findUnique({
@@ -337,7 +361,7 @@ export async function listProducts(
       ])
 
   return {
-    items: rows.map(toProductCard),
+    items: await withRatings(rows.map(toProductCard)),
     total,
     page: f.page,
     pageSize: f.pageSize,
@@ -429,11 +453,13 @@ export async function getRelatedProducts(
   const score = (r: (typeof rows)[number]) =>
     (r.categoryId === product.categoryId ? 2 : 0) + (r.style === product.style ? 1 : 0)
   // sort ổn định: trong cùng điểm giữ thứ tự nổi bật/mới nhất của query.
-  return rows
-    .map((r, i) => ({ r, i }))
-    .sort((a, b) => score(b.r) - score(a.r) || a.i - b.i)
-    .slice(0, take)
-    .map(({ r }) => toProductCard(r))
+  return withRatings(
+    rows
+      .map((r, i) => ({ r, i }))
+      .sort((a, b) => score(b.r) - score(a.r) || a.i - b.i)
+      .slice(0, take)
+      .map(({ r }) => toProductCard(r))
+  )
 }
 
 

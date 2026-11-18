@@ -1,11 +1,11 @@
 ﻿import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { RatingLine } from "@/components/review/star-rating"
 import { FadeImage } from "@/components/ui/fade-image"
 import { formatVnd, GENDER_LABEL } from "@/lib/format"
 import type { ProductCardData } from "@/types/catalog"
 
-const MAX_DOTS = 5
 const IMAGE_SIZES = "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
 
 // Ảnh dọc 4:5, tên và giá cùng một hàng, nhãn góc nhỏ (NEW / HẾT HÀNG), giá chuyển sang màu brand khi là hàng mới.
@@ -82,23 +82,7 @@ export function ProductCard({
         <p className="line-clamp-1 text-label text-subtle-foreground">
           {product.categoryName} • {GENDER_LABEL[product.gender]}
         </p>
-        {product.colors.length > 0 && (
-          <ul aria-label="Màu sắc" className="flex items-center gap-1.5 pt-0.5">
-            {product.colors.slice(0, MAX_DOTS).map((c) => (
-              <li
-                key={c.name}
-                title={c.name}
-                className="size-4 rounded-full border border-border-strong"
-                style={{ backgroundColor: c.hex }}
-              >
-                <span className="sr-only">{c.name}</span>
-              </li>
-            ))}
-            {product.colors.length > MAX_DOTS && (
-              <li className="text-xs text-subtle-foreground">+{product.colors.length - MAX_DOTS}</li>
-            )}
-          </ul>
-        )}
+        {product.rating && <RatingLine average={product.rating.average} count={product.rating.count} />}
       </div>
     </Link>
   )

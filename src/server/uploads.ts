@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto"
 import path from "node:path"
 
 /*
- * Tải ảnh vào public/uploads: ảnh sản phẩm của Admin ở uploads/products, ảnh đại diện của khách ở uploads/avatars.
+ * Tải ảnh vào public/uploads: ảnh sản phẩm của Admin ở uploads/products, ảnh đại diện của khách ở uploads/avatars,
+ * ảnh kèm đánh giá ở uploads/reviews.
  * (File ở gốc uploads/ là ảnh sản phẩm tải từ trước khi chia thư mục; route /uploads/[name] vẫn phục vụ chúng.)
  * File này chỉ gồm HÀM THUẦN (nhận diện loại file, kiểm tên, sinh tên) và hằng số để test được không cần DOM/ổ đĩa;
  * việc đọc/ghi file nằm ở route handler (src/app/api/admin/uploads, src/app/uploads/[name]).
@@ -14,13 +15,16 @@ import path from "node:path"
 export const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
 
 /** Thư mục con theo loại ảnh. */
-export const UPLOAD_FOLDERS = ["products", "avatars"] as const
+export const UPLOAD_FOLDERS = ["products", "avatars", "reviews"] as const
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number]
 export const isUploadFolder = (v: string): v is UploadFolder => (UPLOAD_FOLDERS as readonly string[]).includes(v)
 export const uploadDirFor = (folder: UploadFolder) => path.join(UPLOAD_DIR, folder)
 
 /** Ảnh đại diện: đã được trình duyệt cắt vuông và nén (≈256px), nên giới hạn nhỏ hơn nhiều so với ảnh sản phẩm. */
 export const AVATAR_MAX_BYTES = 512 * 1024
+
+/** Ảnh kèm đánh giá: trình duyệt đã thu nhỏ (≤1280px) và nén sang WebP; cần chi tiết hơn ảnh đại diện nên cho phép lớn hơn. */
+export const REVIEW_IMAGE_MAX_BYTES = 600 * 1024
 
 /** Dung lượng tối đa mỗi ảnh. */
 export const UPLOAD_MAX_BYTES = 5 * 1024 * 1024

@@ -94,6 +94,8 @@ model User {
   adminNotificationsSeenAt DateTime? // mốc "đã đọc" của hộp thư Admin: thông báo mới hơn mốc này là chưa đọc
   adminNotificationReads   AdminNotificationRead[]
   voucherAssignments       VoucherAssignment[]
+  reviews                  Review[]
+  wishlistItems            WishlistItem[]
 }
 
 // Refresh token opaque: chỉ lưu SHA-256 của token (không lưu token gốc).
@@ -168,10 +170,12 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category  Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  images    ProductImage[]
-  variants  ProductVariant[]
-  embedding ProductEmbedding?
+  category      Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images        ProductImage[]
+  variants      ProductVariant[]
+  embedding     ProductEmbedding?
+  reviews       Review[]
+  wishlistItems WishlistItem[]
 
   @@index([categoryId, isActive])
   @@index([isActive, basePrice])
@@ -476,6 +480,65 @@ model OrderItem {
 
   @@index([orderId])
   @@index([variantId])
+}
+
+// Đánh giá sản phẩm: mỗi khách một đánh giá cho mỗi sản phẩm, chỉ khi có đơn DELIVERED chứa sản phẩm đó (kiểm ở service).
+// Hiện ngay khi gửi; Admin ẩn sau (HIDDEN) và có thể hiện lại. Khách xoá đánh giá của mình thì xoá hẳn dòng.
+enum ReviewStatus {
+  VISIBLE
+  HIDDEN
+}
+
+model Review {
+  id           String       @id @default(cuid())
+  userId       String
+  productId    String
+  rating       Int // 1–5
+  content      String? // tối đa 1000 ký tự (Zod)
+  status       ReviewStatus @default(VISIBLE)
+  hiddenAt     DateTime?
+  hiddenById   String? // Admin đã ẩn (không khoá ngoại: Admin bị xoá không làm mất đánh giá)
+  hiddenReason String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images  ReviewImage[]
+
+  @@unique([userId, productId])
+  @@index([productId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+// Ảnh kèm đánh giá (tối đa 3, kiểm ở service): file nằm ở public/uploads/reviews, `url` do server sinh.
+// `url` là duy nhất nên một ảnh không thể gắn vào hai đánh giá. File không còn dòng nào trỏ tới sẽ được dọn tự động (quá 24 giờ).
+model ReviewImage {
+  id        String   @id @default(cuid())
+  reviewId  String
+  url       String   @unique
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId, position])
+}
+
+// Danh sách yêu thích: mỗi khách một dòng cho mỗi sản phẩm (ràng buộc duy nhất), chỉ dành cho người đã đăng nhập.
+// Sản phẩm bị ẩn (isActive = false) vẫn giữ dòng nhưng không hiện trong danh sách; xoá user hoặc sản phẩm thì xoá theo.
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+  @@index([productId])
 }
 
 // Thông tin cửa hàng hiển thị cho khách (trang Liên hệ, Giới thiệu, chân trang). Một dòng duy nhất, id = "default"; Admin sửa ở Cài đặt.

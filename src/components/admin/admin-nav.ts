@@ -3,6 +3,7 @@ import {
   ChartColumnIcon,
   ClipboardListIcon,
   FolderTreeIcon,
+  MessageSquareTextIcon,
   PackageIcon,
   RulerIcon,
   SettingsIcon,
@@ -31,6 +32,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/categories", label: "Danh mục", title: "Quản Lý Danh Mục", crumb: "Danh mục", icon: FolderTreeIcon },
   { href: "/admin/size-charts", label: "Bảng size", title: "Quản Lý Bảng Size", crumb: "Bảng size", icon: RulerIcon },
   { href: "/admin/customers", label: "Quản lý Khách hàng", title: "Quản Lý Tài Khoản Khách Hàng", crumb: "Quản lý Khách hàng", icon: UserRoundIcon },
+  { href: "/admin/reviews", label: "Đánh giá sản phẩm", title: "Quản Lý Đánh Giá Sản Phẩm", crumb: "Đánh giá sản phẩm", icon: MessageSquareTextIcon },
   { href: "/admin/vouchers", label: "Voucher & Khuyến mãi", title: "Quản Lý Mã Giảm Giá & Khuyến Mãi", crumb: "Mã Voucher & Khuyến mãi", icon: TicketPercentIcon },
   { href: "/admin/settings", label: "Cài đặt hệ thống", title: "Cài Đặt Hệ Thống", crumb: "Cài đặt hệ thống", icon: SettingsIcon },
 ]

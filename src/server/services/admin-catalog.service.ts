@@ -30,6 +30,7 @@ export type AdminCatalogErrorCode =
   | "VOUCHER_NOT_FOUND"
   | "VOUCHER_DUPLICATE_CODE"
   | "VOUCHER_IN_USE"
+  | "REVIEW_NOT_FOUND"
 
 export interface AdminCatalogIssue {
   /** Đường dẫn tới trường lỗi, ví dụ ["variants", 0, "sku"]. */

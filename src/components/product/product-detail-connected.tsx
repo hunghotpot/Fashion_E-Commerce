@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ProductDetailMain } from "@/components/product/product-detail-main"
+import { useWishlist, WishlistButton } from "@/components/wishlist/wishlist-button"
 import { useAddToCart } from "@/hooks/use-cart"
 import { sourceToQuery } from "@/lib/order-source"
 import type { ProductDetail } from "@/types/catalog"
@@ -13,14 +14,20 @@ export function ProductDetailConnected({
   product,
   careTips,
   authenticated,
+  rating,
+  wishlisted = false,
 }: {
   product: ProductDetail
   careTips: string[]
   authenticated: boolean
+  rating?: { average: number; count: number }
+  /** Khách đã lưu sản phẩm này vào yêu thích. */
+  wishlisted?: boolean
 }) {
   const router = useRouter()
   const pathname = usePathname()
   const { mutate } = useAddToCart()
+  const wishlist = useWishlist({ productId: product.id, initialActive: wishlisted, authenticated })
 
   function add(item: { variantId: string; quantity: number }, onSuccess?: () => void) {
     if (!authenticated) {
@@ -55,6 +62,9 @@ export function ProductDetailConnected({
     <ProductDetailMain
       product={product}
       careTips={careTips}
+      rating={rating}
+      wishlistSlot={<WishlistButton state={wishlist} productName={product.name} className="max-lg:hidden" />}
+      wishlistInline={<WishlistButton state={wishlist} productName={product.name} size="md" className="lg:hidden" />}
       onAddToCart={(item) => add(item)}
       onBuyNow={(item) => {
         if (!authenticated) {

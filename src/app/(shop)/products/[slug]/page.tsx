@@ -8,7 +8,10 @@ import { ProductSectionSkeleton, SectionHeading } from "@/components/product/pro
 import { getCareTips } from "@/lib/care"
 import { SITE_NAME } from "@/lib/site"
 import { getCurrentUser } from "@/server/auth/session"
+import { ProductReviews } from "@/components/review/product-reviews"
 import { getProductBySlug, getRelatedProducts } from "@/server/services/catalog.service"
+import { getReviewSummary } from "@/server/services/review.service"
+import { getWishlistedIds } from "@/server/services/wishlist.service"
 import type { ProductDetail } from "@/types/catalog"
 
 // generateMetadata và page cùng cần sản phẩm: cache() gộp thành 1 lần query / request.
@@ -38,9 +41,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function ProductDetailPage({ params }: Props) {
-  const [product, user] = await Promise.all([getProduct((await params).slug), getCurrentUser()])
+export default async function ProductDetailPage({ params, searchParams }: Props & { searchParams: Promise<{ rpage?: string | string[] }> }) {
+  const [product, user, sp] = await Promise.all([getProduct((await params).slug), getCurrentUser(), searchParams])
   if (!product) notFound()
+  const [summary, wishlistedIds] = await Promise.all([
+    getReviewSummary(product.id),
+    user ? getWishlistedIds(user.id, [product.id]) : Promise.resolve(new Set<string>()),
+  ])
+  const reviewPage = Number.parseInt(String(Array.isArray(sp.rpage) ? sp.rpage[0] : (sp.rpage ?? "1")), 10)
 
   const { category } = product
 
@@ -59,7 +67,23 @@ export default async function ProductDetailPage({ params }: Props) {
         </ol>
       </nav>
 
-      <ProductDetailConnected product={product} careTips={getCareTips(product.material)} authenticated={!!user} />
+      <ProductDetailConnected
+        product={product}
+        careTips={getCareTips(product.material)}
+        authenticated={!!user}
+        wishlisted={wishlistedIds.has(product.id)}
+        rating={summary.count > 0 ? { average: summary.average, count: summary.count } : undefined}
+      />
+
+      <Suspense fallback={<ProductSectionSkeleton count={1} />}>
+        <ProductReviews
+          productId={product.id}
+          slug={product.slug}
+          summary={summary}
+          userId={user?.id ?? null}
+          page={Number.isFinite(reviewPage) && reviewPage > 0 ? reviewPage : 1}
+        />
+      </Suspense>
 
       <Suspense fallback={<ProductSectionSkeleton />}>
         <RelatedProducts product={product} />

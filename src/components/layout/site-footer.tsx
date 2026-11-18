@@ -20,13 +20,14 @@ const SUPPORT_LINKS = [
 const linkClass = "text-label text-white/70 transition-colors hover:text-white"
 const headingClass = "mb-4 font-sans text-xs font-semibold tracking-[0.16em] uppercase"
 
-// Footer nền ink, chữ trắng (chữ phụ white/70 ≥ 4.5:1). Bốn cột: giới thiệu, danh mục, tài khoản, chính sách.
+// Footer nền ink, chữ trắng (chữ phụ white/70 ≥ 4.5:1). Máy tính: MỘT hàng năm cột (giới thiệu, danh mục, tài khoản, chính sách, hỗ trợ), không cột nào
+// xếp chồng lên cột khác nên footer chỉ cao bằng cột dài nhất. Máy tính bảng: giới thiệu một hàng riêng rồi bốn cột. Điện thoại: hai cột.
 export function SiteFooter({ categories, profile }: { categories: NavCategory[]; profile?: StoreProfile }) {
   const contacts = [profile?.hotline, profile?.email, profile?.address].filter((v): v is string => !!v)
   return (
     <footer className="mt-16 bg-ink text-white">
-      <div className="mx-auto grid w-full max-w-page grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 md:grid-cols-[1.4fr_1fr_1fr_1.2fr] md:gap-8 md:px-8">
-        <div className="col-span-2 space-y-4 md:col-span-1">
+      <div className="mx-auto grid w-full max-w-page grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 md:grid-cols-4 md:gap-8 md:px-8 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
+        <div className="col-span-2 space-y-4 md:col-span-4 lg:col-span-1">
           <Logo inverted />
           <p className="max-w-sm text-sm text-white/70">
             Khám phá phong cách thời trang hiện đại và năng động, từ đồ mặc hằng ngày đến phụ kiện.
@@ -66,33 +67,31 @@ export function SiteFooter({ categories, profile }: { categories: NavCategory[];
           </ul>
         </nav>
 
-        <div className="space-y-8">
-          <nav aria-label="Chính sách">
-            <h2 className={headingClass}>Chính sách</h2>
-            <ul className="space-y-2">
-              {POLICIES.map((p) => (
-                <li key={p.slug}>
-                  <Link href={`/chinh-sach/${p.slug}`} className={linkClass}>
-                    {p.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        <nav aria-label="Chính sách">
+          <h2 className={headingClass}>Chính sách</h2>
+          <ul className="space-y-2">
+            {POLICIES.map((p) => (
+              <li key={p.slug}>
+                <Link href={`/chinh-sach/${p.slug}`} className={linkClass}>
+                  {p.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-          <nav aria-label="Hỗ trợ">
-            <h2 className={headingClass}>Hỗ trợ</h2>
-            <ul className="space-y-2">
-              {SUPPORT_LINKS.map((l) => (
-                <li key={l.href}>
-                  <Link href={l.href} className={linkClass}>
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
+        <nav aria-label="Hỗ trợ">
+          <h2 className={headingClass}>Hỗ trợ</h2>
+          <ul className="space-y-2">
+            {SUPPORT_LINKS.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} className={linkClass}>
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
 
       <div className="border-t border-white/10">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CircleHelpIcon, MapPinIcon, ShoppingBagIcon, TicketPercentIcon, UserRoundIcon } from "lucide-react"
+import { CircleHelpIcon, HeartIcon, MapPinIcon, ShoppingBagIcon, TicketPercentIcon, UserRoundIcon } from "lucide-react"
 import { cn } from "@/lib/cn"
 import { useFilterPending } from "@/stores/product-filter-pending"
 
@@ -35,6 +35,7 @@ export function AccountNav({ orderCount }: { orderCount: number }) {
     { href: "/account/addresses", label: "Sổ địa chỉ", icon: MapPinIcon },
     { href: "/account/orders", label: "Đơn hàng của tôi", icon: ShoppingBagIcon, count: orderCount },
     { href: "/account/vouchers", label: "Voucher của tôi", icon: TicketPercentIcon },
+    { href: "/account/wishlist", label: "Sản phẩm yêu thích", icon: HeartIcon },
     { href: "/help", label: "Trung tâm trợ giúp", icon: CircleHelpIcon, soon: true },
   ]
 

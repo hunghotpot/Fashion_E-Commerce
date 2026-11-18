@@ -64,7 +64,7 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 
 - **Header** (`SiteHeader`): logo, menu chính, ô tìm kiếm và cụm biểu tượng. Menu chính (`NAV_LINKS` trong `src/components/layout/nav-links.ts`): **Hàng mới về**, **Bộ sưu tập**, **Nổi bật** (cuộn tới `/#san-pham-moi`, `/#bo-suu-tap`, `/#noi-bat`; từ trang khác thì về trang chủ rồi cuộn) và **Giới thiệu** (`/gioi-thieu`). Menu hiện giữa header từ màn xl (≥1280px); nhỏ hơn dùng nút ba gạch (`MobileMenu`) mở ngăn kéo bên trái. Dưới 640px chuông thông báo nằm trong ngăn kéo (dòng "Thông báo" kèm số chưa đọc, nút ba gạch có chấm báo) vì header không đủ chỗ.
 - **Chưa đăng nhập:** không hiện tài khoản, giỏ hay chuông, chỉ có liên kết "Đăng nhập" gạch chân (đăng ký đi từ trang đăng nhập). Đã đăng nhập: chuông, `AccountMenu`, `CartButton`.
-- **Hero:** hai nút "Mua theo danh mục" (cuộn tới `#danh-muc`) và "Xem bộ sưu tập" (cuộn tới `#bo-suu-tap`).
+- **Hero:** hai nút "Mua theo danh mục" (cuộn tới `#danh-muc`) và "Xem bộ sưu tập" (cuộn tới `#bo-suu-tap`). Dải nền kem **tràn hết bề ngang màn hình** (từ 2026-11-19), nối liền thanh header, **cao bằng phần màn hình còn lại dưới header** (máy tính: `100dvh` trừ header 78px; điện thoại: `85dvh` trừ header 65px để hé ra phần bên dưới; tối thiểu 30rem/26rem); chữ nằm trong khung nội dung nên thẳng hàng với logo. Hình trang trí bên phải (hai hình tròn và chữ "2026") vẫn là hình giữ chỗ bằng CSS cho tới khi có ảnh thật; hai hình tròn ẩn trên điện thoại. Cách tràn mép: lớp nền rộng `100vw` đặt giữa phần tử, nên `<body>` có `overflow-x-clip` để 100vw (gồm cả thanh cuộn) không sinh thanh cuộn ngang; header dính và các phần tử `sticky` khác vẫn hoạt động.
 - **Các mục và liên kết "Xem tất cả →"** (liên kết nhỏ gạch chân, vùng bấm 44px), mỗi mục một đích riêng:
 
 | Mục (id) | Liên kết | Đích |
@@ -84,9 +84,14 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 
 - **Route:** `/products/[slug]`; slug không tồn tại hoặc `isActive = false` trả 404. Có `generateMetadata` và JSON-LD `schema.org/Product` (AggregateOffer theo giá thấp/cao nhất của biến thể).
 - **Chọn biến thể:** logic thuần hàm ở `src/lib/product-variants.ts` (có test). Chỉ chọn được tổ hợp màu × size tồn tại và còn hàng; option hết hàng mờ + gạch chéo, tổ hợp không tồn tại chỉ mờ. Giá và tồn kho theo biến thể đang chọn.
-- **Giỏ hàng:** `ProductDetailMain` có ô số lượng và hai nút "Thêm vào giỏ hàng" / "Mua ngay", nhận prop `onAddToCart` và `onBuyNow` (`{ variantId, quantity }`); `ProductDetailConnected` nối hai prop này với giỏ hàng (xem mục "Giỏ hàng").
+- **Bố cục (từ 2026-11-19, theo mục tiêu "màn hình đầu tiên có đủ ảnh, giá, màu, size và nút mua"):**
+  - Máy tính: dải ảnh nhỏ dọc bên trái + MỘT ảnh chính tỷ lệ 4:5, cao tối đa 78% khung nhìn (`78dvh`), hai cột bằng nhau (`1fr 1fr`). Bấm ảnh chính để xem lớn (hộp có mũi tên, phím ← →, bộ đếm, thumbnail). Tối đa 8 ảnh.
+  - Điện thoại: ảnh 4:5 vuốt ngang (`scroll-snap`, vuốt hoặc phím mũi tên khi đang focus), bộ đếm "1/N", không mũi tên và không thumbnail; trái tim nằm cạnh giá; hai nút mua dính đáy màn hình.
+  - Chỉ hiện dòng tồn kho khi có ý nghĩa ("Chỉ còn N sản phẩm" từ 5 trở xuống, hoặc hết hàng); không còn dòng "Còn N sản phẩm" và SKU.
+- **Giỏ hàng:** `ProductDetailMain` KHÔNG có ô số lượng (quyết định của chủ dự án): "Thêm vào giỏ" và "Mua ngay" luôn là 1 sản phẩm, khách chỉnh số lượng trong giỏ hàng. Hai nút nhận prop `onAddToCart` và `onBuyNow` (`{ variantId, quantity: 1 }`); `ProductDetailConnected` nối chúng với giỏ hàng (xem mục "Giỏ hàng"). Hai nút luôn bấm được trừ khi hết hàng; bấm khi chưa chọn đủ thì hiện nhắc ngay dưới nhóm còn thiếu ("Chọn màu và size / màu / size để tiếp tục", `role="alert"`) và đưa focus tới ô đầu tiên của nhóm đó (`missingAxes` ở `product-variants.ts`). Không hiện nhắc sẵn khi vừa vào trang.
 - **Bảng size:** lấy từ `SizeChart` của category (ưu tiên bảng riêng của brand), ẩn nút nếu category chưa có bảng.
 - **Chăm sóc:** DB chưa có trường riêng nên `src/lib/care.ts` gợi ý chung theo chất liệu.
+- **Thẻ sản phẩm** (danh sách, trang chủ): không hiện dải chấm màu (ẩn từ 2026-11-19 cho gọn; dữ liệu màu vẫn có trong `ProductCardData.colors`); màu chỉ chọn ở trang chi tiết và lọc ở bộ lọc danh sách.
 - **Ảnh theo màu:** `imagesForColor()` đã sẵn, nhưng bảng `ProductImage` chưa có cột màu nên hiện chưa tác dụng. Cần thêm cột `color` (nullable) vào `ProductImage` để bật.
 
 ## Giỏ hàng
@@ -183,13 +188,35 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 - **Ảnh tải lên:** `POST /api/account/avatar` (multipart, trường `file`, đúng 1 ảnh; chỉ người đăng nhập, chỉ ảnh của chính mình): trình duyệt tự cắt vuông giữa và nén còn 256×256 WebP (cũng bỏ dữ liệu vị trí EXIF) trước khi gửi; server vẫn kiểm lại tối đa 512KB, magic bytes JPEG/PNG/WebP, chặn Origin khác host, tên file UUID do server sinh. Lưu ở `public/uploads/avatars/`, phục vụ qua `/uploads/avatars/<tên>` (cache immutable). Đổi hoặc gỡ ảnh thì file cũ bị xoá khỏi đĩa; ghi DB lỗi thì file vừa ghi cũng bị xoá.
 - **Chọn ảnh:** Server Action `saveAvatarChoiceAction` (chữ cái đầu + màu, hoặc ảnh tạo sẵn) và `removeAvatarAction` (về chữ cái đầu, giữ màu), cùng service `avatar.service.ts`; `userId` luôn lấy từ phiên. Giao diện `AvatarPicker`: bấm vào ảnh ở sidebar tài khoản mở khung 3 tab (Chữ cái đầu, Tạo sẵn có "Ngẫu nhiên", Tải ảnh lên bằng bấm chọn, kéo thả hoặc dán).
 - **Hiện ở đâu** (component `UserAvatar`): sidebar và menu tài khoản trên header, đầu khung chuông thông báo của khách, header Admin, danh sách và chi tiết khách ở Admin (khách chưa chọn gì thì Admin giữ chữ cái đầu tô màu theo hạng). Email đơn hàng KHÔNG hiện ảnh đại diện (dự án chưa có địa chỉ gốc của website để nhúng ảnh và email không hiển thị tốt SVG).
-- **Thư mục tải lên:** `public/uploads/products` (ảnh sản phẩm của Admin) và `public/uploads/avatars` (ảnh đại diện); route phục vụ `/uploads/[name]/[file]` chỉ nhận thư mục trong danh sách. `public/uploads/` trên ổ đĩa máy chủ: chạy nhiều máy chủ hoặc hosting không giữ ổ đĩa thì cần chuyển sang dịch vụ lưu trữ ngoài.
+- **Thư mục tải lên:** `public/uploads/products` (ảnh sản phẩm của Admin), `public/uploads/avatars` (ảnh đại diện) và `public/uploads/reviews` (ảnh kèm đánh giá, xem mục "Đánh giá sản phẩm"); route phục vụ `/uploads/[name]/[file]` chỉ nhận thư mục trong danh sách. `public/uploads/` trên ổ đĩa máy chủ: chạy nhiều máy chủ hoặc hosting không giữ ổ đĩa thì cần chuyển sang dịch vụ lưu trữ ngoài.
 - **Test:** `src/lib/avatar.test.ts`, `src/app/avatars/[style]/route.test.ts`, `src/app/api/account/avatar/route.test.ts`, `src/app/actions/account-avatar.test.ts`, `src/server/services/avatar.service.integration.test.ts`, `src/app/uploads/[name]/[file]/route.test.ts`.
+
+## Đánh giá sản phẩm
+
+- **Quy tắc:** chỉ khách có đơn **đã giao** (`DELIVERED`) chứa sản phẩm đó mới được đánh giá (`hasDeliveredProduct`, dòng đơn có `variantId` null không tính). Mỗi khách một đánh giá cho mỗi sản phẩm (ràng buộc duy nhất `userId + productId`); gửi lần hai là sửa chính đánh giá đó, khách cũng tự xoá được. Đánh giá **hiện ngay**, Admin ẩn sau. Sửa đánh giá đang bị ẩn thì nó VẪN bị ẩn (sửa không phải cách để hiện lại).
+- **Dữ liệu:** bảng `Review` (rating 1–5, `content` ≤1000 ký tự không bắt buộc, `status` `VISIBLE`/`HIDDEN`, `hiddenAt`, `hiddenById`, `hiddenReason`) và `ReviewImage` (`url` duy nhất, `position`; xoá theo đánh giá). Sao trung bình KHÔNG lưu sẵn: tính bằng truy vấn tổng hợp chỉ trên đánh giá `VISIBLE` (`getReviewSummary` cho một sản phẩm, `getRatingsForProducts` gộp một truy vấn cho cả danh sách thẻ sản phẩm, nên không N+1). Chưa lọc/sắp xếp sản phẩm theo sao.
+- **Khách:** khối "Đánh giá từ khách hàng" ở cuối trang chi tiết sản phẩm (`ProductReviews`, neo `#danh-gia`): sao trung bình, phân bố 5 mức, danh sách phân trang bằng liên kết thật `?rpage=N`, tên người viết đã che (`maskReviewerName`: "Nguyễn Văn An" → "N. V. An"). Ba trạng thái cho khách: chưa đăng nhập (mời đăng nhập), chưa nhận hàng (lời giải thích), hoặc form `ReviewForm` (chọn sao bằng nhóm radio gốc, nhận xét, ảnh; xoá cần xác nhận hai bước). Thẻ sản phẩm và dòng dưới tên sản phẩm hiện "★ 4,5 (12)" khi đã có đánh giá.
+- **Ảnh kèm theo (tối đa 3):** trình duyệt thu nhỏ (cạnh dài ≤1280px) và nén WebP rồi tải lên NGAY qua `POST /api/account/reviews/images` (chỉ người đăng nhập; ≤600KB, magic bytes JPEG/PNG/WebP, chặn Origin khác host, tên UUID do server sinh; trả `{ url }`, CHƯA gắn vào đánh giá nào). Khi bấm gửi, `saveReview` nhận danh sách URL (đúng dạng `/uploads/reviews/<uuid>.<đuôi>`, không trùng, ≤3) và thay trọn bộ ảnh trong cùng transaction; vắng `images` thì giữ nguyên ảnh. Ảnh bị bỏ hoặc đánh giá bị xoá thì xoá file khỏi đĩa. `url` duy nhất nên ảnh đã gắn vào đánh giá này không dùng lại cho đánh giá khác.
+- **Dọn file mồ côi tự động:** ảnh đã tải lên mà không được gửi đi (hoặc còn sót khi người dùng/sản phẩm bị xoá) bị xoá khi **cũ hơn 24 giờ** và không có dòng `ReviewImage` nào trỏ tới (`pruneOrphanReviewImages`), nên ảnh đang soạn dở không bị xoá nhầm. Chạy nền sau mỗi lần tải ảnh (tối đa mỗi giờ một lần mỗi tiến trình) và kèm cron `/api/cron/expire-orders`. Chưa giới hạn tốc độ tải ảnh theo người dùng.
+- **Admin:** `/admin/reviews` (mục "Đánh giá sản phẩm" trong menu): thẻ số liệu, tìm theo sản phẩm/khách/email/nội dung, lọc Đang hiện/Đã ẩn kèm số đếm, bảng có thumbnail ảnh (mở ảnh lớn ở tab mới), **Ẩn** (hộp thoại ghi lý do tuỳ chọn, chỉ Admin thấy) và **Hiện lại**. Chỉ ẩn được cả đánh giá, chưa ẩn riêng từng ảnh. `hideReviewAction`/`showReviewAction` gọi `getAdminUser()` trước; service `admin-review.service.ts` không tự kiểm quyền.
+- **Code:** `src/server/services/review.service.ts` (khách), `review-image.service.ts` (file trên đĩa), `admin-review.service.ts`; Server Action `src/app/actions/review.ts` (`saveReviewAction`, `deleteReviewAction`) và `admin-reviews.ts`; validator `src/lib/validators/review.ts`, `admin-review.ts`; phần thuần `src/lib/review.ts`; giao diện `src/components/review/*` và `src/components/admin/reviews/*`.
+- **Test:** `src/lib/review.test.ts`, `src/app/actions/review.test.ts`, `src/app/api/account/reviews/images/route.test.ts`, và (cần PostgreSQL) `review.service.integration.test.ts`, `review-images.integration.test.ts`, `review-image.service.integration.test.ts`, `admin-review.service.integration.test.ts`.
+
+## Sản phẩm yêu thích (wishlist)
+
+- **Dữ liệu:** bảng `WishlistItem` (userId, productId, createdAt), ràng buộc duy nhất `userId + productId`, xoá theo khi người dùng hoặc sản phẩm bị xoá. Chỉ dành cho người đã đăng nhập (giống giỏ hàng). Sản phẩm bị ẩn (`isActive = false`) GIỮ dòng yêu thích nhưng không hiện trong danh sách; bán lại thì hiện lại; không thêm được sản phẩm đang ẩn.
+- **Service** (`wishlist.service.ts`, `userId` luôn lấy từ phiên): `addToWishlist` (upsert, idempotent; sản phẩm không có hoặc đang ẩn báo `PRODUCT_NOT_FOUND`), `removeFromWishlist` (deleteMany, idempotent: bấm nhanh hoặc bỏ khi chưa có không lỗi), `getWishlistedIds(userId, productIds)` (một truy vấn cho cả danh sách), `listWishlist` (mới thêm trước, phân trang 12/trang, trả `ProductCardData` kèm sao trung bình qua `catalog.getProductCardsByIds`). Lỗi `WishlistError.code`: `INVALID_INPUT`, `PRODUCT_NOT_FOUND`.
+- **Server Action** (`src/app/actions/wishlist.ts`): `addToWishlistAction`, `removeFromWishlistAction`; chưa đăng nhập trả thông báo, không gọi service.
+- **Nút yêu thích CHỈ ở trang chi tiết sản phẩm** (quyết định của chủ dự án, không đặt ở thẻ sản phẩm): máy tính nằm cạnh "Thêm vào giỏ" và "Mua ngay" (52px); điện thoại nằm cạnh giá (44px) vì hàng nút mua dính đáy không đủ chỗ cho nút thứ ba (từng gây cuộn ngang). Hai nút dùng chung trạng thái trong hook `useWishlist`, chỉ một nút hiện. Cập nhật lạc quan (tim đổi ngay, lỗi thì quay lại và có thông báo); `aria-pressed`, nhãn nêu tên sản phẩm, tim đã thích có tô đặc và màu đỏ. Chưa đăng nhập: bấm thì chuyển `/login?next=` rồi quay lại đúng trang.
+- **Trang Yêu thích:** `/account/wishlist` (mục "Sản phẩm yêu thích" ở thanh bên tài khoản và menu tài khoản của khách): lưới thẻ sản phẩm, nút "Bỏ yêu thích" dưới mỗi thẻ (ngoài vùng liên kết của thẻ), phân trang bằng liên kết `?page=`, trạng thái rỗng có lời mời "Xem sản phẩm".
+- **Chưa làm (cố ý, để gọn):** trái tim ở thẻ sản phẩm, số lượng trên header, báo khi món yêu thích sắp hết hoặc giảm giá, "Thêm tất cả vào giỏ".
+- **Test:** `src/app/actions/wishlist.test.ts` và (cần PostgreSQL) `src/server/services/wishlist.service.integration.test.ts`.
 
 ## Thông tin cửa hàng
 - **Dữ liệu:** bảng `StoreProfile`, MỘT dòng (id `default`): hotline, email, địa chỉ, giới thiệu (các đoạn cách nhau bằng dòng trống). Chưa cấu hình thì mọi trường là null và trang hiện "chưa có thông tin".
 - **Sửa:** Admin > Cài đặt > "Cửa hàng & Brand" (Server Action `updateStoreProfileAction`, kiểm `getAdminUser()` trước; validate bằng `storeProfileSchema`: hotline chỉ số và `+ ( ) . -`, email hợp lệ, độ dài tối đa). Tên thương hiệu vẫn là hằng số `SITE_NAME`, chưa sửa được ở Admin.
 - **Hiện ở đâu:** trang `/lien-he`, `/gioi-thieu` và chân trang mọi trang cửa hàng (`getStoreProfile()` ở layout cửa hàng).
+- **Bố cục chân trang** (`site-footer.tsx`, từ 2026-11-19): máy tính MỘT hàng năm cột (giới thiệu và liên hệ, Danh mục, Tài khoản, Chính sách, Hỗ trợ), không cột nào xếp chồng lên cột khác nên chân trang chỉ cao bằng cột dài nhất; máy tính bảng: giới thiệu một hàng riêng rồi bốn cột; điện thoại: hai cột. Nền ink, chữ trắng như trước; không có khối đăng ký email (cửa hàng chưa có chức năng gom email).
 - **Code:** `store-profile.service.ts` (đọc), `admin-store-profile.service.ts` (ghi, upsert), `src/lib/validators/admin-settings.ts`, `src/app/actions/admin-settings.ts`. Test: `store-profile.integration.test.ts` (DB test), `admin-settings.test.ts` (mock quyền/input).
 
 ## Thông báo
@@ -203,7 +230,7 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 ## Trang Admin
 
 - **Vào:** đăng nhập bằng tài khoản ADMIN (xem bảng tài khoản demo) rồi mở `/admin` (menu tài khoản có mục "Trang quản trị"). Middleware chặn theo role, `layout` đọc lại DB bằng `requireAdmin()`; **mọi Server Action và route Admin còn phải tự kiểm quyền bằng `getAdminUser()`** (`src/server/auth/admin.ts`).
-- **Màn hình:** Tổng quan, Đơn hàng (+ chi tiết), Tồn kho & Sản phẩm, Danh mục, Bảng size, Khách hàng (+ chi tiết) và **Voucher** chạy thật; **Cài đặt hệ thống** lưu được 4 tab (Cửa hàng & Brand, Cổng thanh toán: tài khoản nhận tiền, Vận chuyển & Kho, Hạng thành viên); tab Phân quyền Admin là giao diện minh hoạ.
+- **Màn hình:** Tổng quan, Đơn hàng (+ chi tiết), Tồn kho & Sản phẩm, Danh mục, Bảng size, Khách hàng (+ chi tiết), **Voucher** và **Đánh giá sản phẩm** chạy thật; **Cài đặt hệ thống** lưu được 4 tab (Cửa hàng & Brand, Cổng thanh toán: tài khoản nhận tiền, Vận chuyển & Kho, Hạng thành viên); tab Phân quyền Admin là giao diện minh hoạ.
 - **Ảnh sản phẩm:** tải lên qua `POST /api/admin/uploads` (chỉ Admin; JPG/PNG/WebP kiểm bằng chữ ký file, tối đa 5MB và 4 ảnh/lần, tên file do server sinh), lưu ở `public/uploads/products/` (đã nằm trong `.gitignore`) và phục vụ qua `/uploads/products/<tên>`. (Ảnh sản phẩm tải từ trước khi chia thư mục nằm ở gốc `public/uploads/` và vẫn phục vụ qua `/uploads/<tên>`.) Ảnh seed là ảnh tạm từ picsum.photos (ngẫu nhiên, không liên quan quần áo).
 - **Khoá tài khoản khách:** `User.status` (ACTIVE/LOCKED); tài khoản bị khoá không đăng nhập hay refresh được, phiên cũ mất hiệu lực ngay.
 - **Code:** nghiệp vụ ở `src/server/services/admin-*.service.ts`; giao diện ở `src/app/(admin)/admin/` và `src/components/admin/`; quy ước dựng màn hình mới ở mục "Quy ước dựng màn hình Admin" bên dưới.
@@ -220,6 +247,7 @@ Tự xây bằng `jose` + `bcryptjs`, không dùng thư viện auth ngoài.
 | Bảng size `size-charts` | ✅ | ✅ | Tự thiết kế theo hệ thống chung |
 | Khách hàng `customers` (+ `customers/[id]`) | ✅ | ✅ | Tạo tài khoản, Khoá/Mở, lọc theo 4 hạng. Bỏ hạng "Tiềm năng" và xuất Excel |
 | Voucher `vouchers` | ✅ `admin-voucher.service` | ✅ | Tạo/sửa/bật-tắt/xoá (không xoá được mã đã có đơn dùng). Thống kê tính theo đơn chưa huỷ |
+| Đánh giá sản phẩm `reviews` | ✅ `admin-review.service` | ✅ | Xem, lọc, tìm; Ẩn (kèm lý do)/Hiện lại. Chưa ẩn riêng từng ảnh (xem mục "Đánh giá sản phẩm") |
 | Cài đặt hệ thống `settings` | ◐ một phần: `StoreProfile`, `PaymentAccount`, `ShopSettings` lưu thật; chưa có vai trò nhân viên | ◐ | 4 tab lưu được (xem mục "Quy tắc cửa hàng"); tab Phân quyền Admin là minh hoạ |
 
 **Việc Admin còn tồn:**
@@ -312,7 +340,7 @@ export async function xAction(input: unknown): Promise<AdminActionResult> {
 
 ## Việc nên làm trước khi lên production
 
-- Đặt `JWT_SECRET` mạnh, `CRON_SECRET`, thông tin ngân hàng thật (`BANK_*` hiện là dữ liệu mẫu) và lịch gọi `/api/cron/expire-orders` (route này huỷ đơn quá hạn và cũng xoá thông báo Admin cũ hơn 30 ngày).
+- Đặt `JWT_SECRET` mạnh, `CRON_SECRET`, thông tin ngân hàng thật (`BANK_*` hiện là dữ liệu mẫu) và lịch gọi `/api/cron/expire-orders` (route này huỷ đơn quá hạn, xoá thông báo Admin cũ hơn 30 ngày và dọn ảnh đánh giá mồ côi cũ hơn 24 giờ).
 - Chạy toàn bộ test (kể cả test tích hợp cần PostgreSQL thật) trong CI.
 - Chuyển rate limit đăng nhập sang Redis; đánh giá cảnh báo Edge của `jose`.
 - Cookie `secure` và HTTPS, kiểm tra header bảo mật, thêm quy trình hoàn tiền thủ công cho Admin.

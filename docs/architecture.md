@@ -58,7 +58,8 @@ Thư mục phụ trợ: `src/lib/` (hàm thuần dùng chung server/client: `car
 | `/api/cart/items/[variantId]` | PATCH, DELETE | đăng nhập | `cart.updateQuantity`, `cart.removeItem` |
 | `/api/auth/me` | GET | cookie | `getCurrentUser` |
 | `/api/auth/refresh` | GET | refresh cookie (do middleware chuyển hướng tới) | `auth.refresh` |
-| `/api/cron/expire-orders` | GET | `Authorization: Bearer CRON_SECRET` | `payment.expireUnpaidOrders` |
+| `/api/cron/expire-orders` | GET | `Authorization: Bearer CRON_SECRET` | `payment.expireUnpaidOrders`, `admin-notification.deleteOldAdminNotifications`, `review-image.pruneOrphanReviewImages` |
+| `/api/account/reviews/images` | POST | đăng nhập (`getCurrentUser`) | Tải 1 ảnh kèm đánh giá vào `public/uploads/reviews` (≤600KB, magic bytes, tên do server sinh), trả `{ url }`; chưa gắn vào đánh giá (gắn khi `saveReviewAction`); dọn nền file mồ côi |
 | `/api/ai/chat` | POST | đăng nhập (khách 401), cờ AI bật (tắt 503) | `ai/chat/handler.handleChat` (giới hạn tốc độ, ngân sách token, model và tập tool đóng 10 tool (9 đọc/giao diện + `addToCart` chỉ tạo thẻ xác nhận); trả luồng NDJSON gồm chữ, thẻ và hành động giao diện) |
 | `/api/ai/confirm` | POST | đăng nhập (khách 401), cờ AI bật (tắt 503) | `ai/chat/confirm.handleConfirm` (bước 2 của `addToCart`: lấy bản ghi xác nhận dùng một lần rồi `addItem`; nơi duy nhất tầng AI ghi giỏ) |
 
@@ -71,12 +72,15 @@ Trang Server Component (`src/app/(shop)/**`) gọi service trực tiếp để �
 | `admin-products.ts`: `saveProductAction`, `setProductActiveAction`, `deleteProductAction`, `adjustStockAction` | Tạo/sửa/ẩn/xoá sản phẩm, nhập kho | `admin-product.service` |
 | `admin-customers.ts`: `lockCustomerAction`, `unlockCustomerAction`, `createCustomerAction` | Khoá/mở khoá, tạo tài khoản khách | `admin-customer.service` |
 | `admin-categories.ts`, `admin-size-charts.ts` | Danh mục, bảng size | `admin-category.service`, `admin-size-chart.service` |
+| `admin-reviews.ts`: `hideReviewAction`, `showReviewAction` | Ẩn (kèm lý do)/hiện lại đánh giá sản phẩm | `admin-review.service` |
+
+Phía khách (cần đăng nhập, `userId` lấy từ phiên): `review.ts` (`saveReviewAction`, `deleteReviewAction`) → `review.service` (chỉ khách có đơn đã giao mới được đánh giá); `wishlist.ts` (`addToWishlistAction`, `removeFromWishlistAction`) → `wishlist.service` (yêu thích, idempotent).
 
 | Route | Method | Quyền | Việc |
 |---|---|---|---|
 | `/api/admin/uploads` | POST | Admin (`getAdminUser`) | Tải ảnh sản phẩm vào `public/uploads/products` (magic bytes, 5MB, 4 ảnh, tên do server sinh) |
 | `/uploads/[name]` | GET | công khai | Phục vụ ảnh sản phẩm tải từ trước khi chia thư mục (tên phải khớp UUID + jpg/png/webp) |
-| `/uploads/[name]/[file]` | GET | công khai | Phục vụ ảnh theo thư mục (`products`, `avatars`); thư mục trong danh sách, tên khớp UUID + jpg/png/webp |
+| `/uploads/[name]/[file]` | GET | công khai | Phục vụ ảnh theo thư mục (`products`, `avatars`, `reviews`); thư mục trong danh sách, tên khớp UUID + jpg/png/webp |
 | `/api/account/avatar` | POST | đăng nhập (`getCurrentUser`) | Tải ảnh đại diện của chính mình (1 ảnh, ≤512KB, magic bytes, tên do server sinh) → `avatar.saveUploadedAvatar` |
 | `/avatars/[style]` | GET | công khai | Ảnh đại diện tạo sẵn (DiceBear, SVG) từ `?seed=`; style trong danh sách CC0, seed chữ+số |
 
@@ -158,6 +162,9 @@ Nhận `admin: { userId }` làm ngữ cảnh. Input công khai được `parse` 
 | `admin-size-chart.service` | `listSizeChart`, `replaceSizeChart`, `deleteSizeChartRows` | `AdminCatalogError` |
 | `admin-customer.service` | `listCustomers`, `getCustomerSummary`, `getCustomerDetail`, `lockCustomer`, `unlockCustomer`, `createCustomerByAdmin` | `AdminCustomerError` |
 | `admin-dashboard.service` | `getDashboardStats` | – |
+| `admin-review.service` | `listAdminReviews`, `hideReview`, `showReview` | `AdminCatalogError` (`REVIEW_NOT_FOUND`) |
+
+Đánh giá phía khách: `review.service.ts` (`hasDeliveredProduct`, `getMyReviewState`, `saveReview`, `deleteMyReview`, `listProductReviews`, `getReviewSummary`, `getRatingsForProducts`; lỗi `ReviewError.code`: `INVALID_INPUT`, `PRODUCT_NOT_FOUND`, `NOT_ELIGIBLE`, `REVIEW_NOT_FOUND`) và `review-image.service.ts` (`deleteReviewImageFiles`, `pruneOrphanReviewImages`, `maybePruneOrphanReviewImages`). `catalog.service` gắn sao trung bình vào thẻ sản phẩm bằng một truy vấn gộp (`withRatings`) và có `getProductCardsByIds(ids)` (giữ đúng thứ tự `ids`, bỏ sản phẩm ẩn). Yêu thích: `wishlist.service.ts` (`addToWishlist`, `removeFromWishlist`, `getWishlistedIds`, `listWishlist`; lỗi `WishlistError.code`: `INVALID_INPUT`, `PRODUCT_NOT_FOUND`).
 
 Ghi chú: `product-hooks.ts` có `syncProductEmbedding(productId)`, được `admin-product.service` gọi sau mỗi thay đổi sản phẩm/tồn kho; hàm chạy nền (AI tắt thì không làm gì) và gọi `ai/search/sync-embeddings` để cập nhật bảng `ProductEmbedding`. Doanh thu = đơn `PAID` hoặc COD đã giao, loại huỷ/hoàn tiền, tính theo ngày tạo đơn. Hạng VIP suy ra từ tổng chi tiêu (`src/lib/customer-tier.ts`), không lưu cột.
 
@@ -176,7 +183,7 @@ Chia theo tính năng, `core/` dùng chung (cây thư mục đầy đủ và lu�
 
 ## 4. Dữ liệu (Prisma)
 
-Model: `User` (có `status` ACTIVE/LOCKED), `RefreshToken`, `Address`, `Category` (cây 2 cấp), `Product`, `ProductImage`, `ProductVariant`, `SizeChart`, `Cart`, `CartItem`, `OrderSequence`, `Order`, `OrderItem`, `OrderStatusHistory`. Extension `vector` và `unaccent` đã bật qua migration. `ProductEmbedding` (vector 1024 chiều cho tìm kiếm ngữ nghĩa, từ 2026-11-13). Bảng cho AI: `KnowledgeChunk` (kho kiến thức, vector 1024 chiều, 2026-11-13) và `AiChatLog` (nhật ký hội thoại 3 mức, 2026-11-14; xoá user thì xoá nhật ký theo). **CHƯA CÓ**: bảng khuyến mãi/voucher, bảng cấu hình hệ thống, vai trò nhân viên (chỉ CUSTOMER/ADMIN). Danh mục là cây Nam / Nữ / Unisex + Phụ kiện (20 category, mỗi sản phẩm một category lá theo giới tính). Lọc theo mùa đã có: `productFilterSchema` có trường `season` (khớp khi trùng ít nhất một mùa), đi vào URL và hiện thành chip; chưa có ô chọn mùa trong panel lọc.
+Model: `User` (có `status` ACTIVE/LOCKED), `RefreshToken`, `Address`, `Category` (cây 2 cấp), `Product`, `ProductImage`, `ProductVariant`, `SizeChart`, `Cart`, `CartItem`, `OrderSequence`, `Order`, `OrderItem`, `OrderStatusHistory`, `Review` và `ReviewImage` (đánh giá sản phẩm và ảnh kèm, 2026-11-20) và `WishlistItem` (sản phẩm yêu thích). Extension `vector` và `unaccent` đã bật qua migration. `ProductEmbedding` (vector 1024 chiều cho tìm kiếm ngữ nghĩa, từ 2026-11-13). Bảng cho AI: `KnowledgeChunk` (kho kiến thức, vector 1024 chiều, 2026-11-13) và `AiChatLog` (nhật ký hội thoại 3 mức, 2026-11-14; xoá user thì xoá nhật ký theo). **CHƯA CÓ**: bảng khuyến mãi/voucher, bảng cấu hình hệ thống, vai trò nhân viên (chỉ CUSTOMER/ADMIN). Danh mục là cây Nam / Nữ / Unisex + Phụ kiện (20 category, mỗi sản phẩm một category lá theo giới tính). Lọc theo mùa đã có: `productFilterSchema` có trường `season` (khớp khi trùng ít nhất một mùa), đi vào URL và hiện thành chip; chưa có ô chọn mùa trong panel lọc.
 
 ## 5. Những điểm cần nhớ khi thêm tầng AI
 1. Mọi logic mới đi qua service; route AI chỉ validate + gọi service (cùng quy tắc `project.md`).

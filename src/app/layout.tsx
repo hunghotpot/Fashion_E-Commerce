@@ -37,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={`${montserrat.variable} ${cormorant.variable}`}>
-      <body className="antialiased">
+      <body className="antialiased overflow-x-clip">
         {children}
         <Toaster />
       </body>

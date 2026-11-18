@@ -89,7 +89,7 @@ Sao chép `.env.example` thành `.env` (đã nằm trong `.gitignore`, **không 
 | `JWT_SECRET` | Có | Chuỗi ngẫu nhiên từ 32 ký tự trở lên (ví dụ `openssl rand -base64 32`) |
 | `NEXT_PUBLIC_APP_URL` | Có | Địa chỉ site (`http://localhost:3000` khi dev) |
 | `BANK_NAME`, `BANK_BIN`, `BANK_ACCOUNT_NO`, `BANK_ACCOUNT_NAME` | Không | Tài khoản nhận chuyển khoản MẶC ĐỊNH (VietQR), là **dữ liệu mẫu**. Admin cập nhật tài khoản thật ở Cài đặt > Cổng thanh toán (lưu trong DB, ưu tiên hơn các biến này) |
-| `CRON_SECRET` | Không | Bảo vệ route cron `/api/cron/expire-orders`; để trống thì route bị khoá |
+| `CRON_SECRET` | Không | Bảo vệ route cron `/api/cron/expire-orders` (huỷ đơn quá hạn, dọn thông báo cũ và ảnh đánh giá mồ côi); để trống thì route bị khoá |
 | `PRISMA_QUERY_LOG` | Không | Đặt `1` để in mọi câu SQL khi dev |
 | `AI_*` | Chỉ khi bật AI | 6 biến bắt buộc (`AI_ENABLED`, `AI_PROVIDER`, `AI_CHAT_MODEL`, `AI_EMBEDDING_PROVIDER`, `AI_EMBEDDING_MODEL`, `AI_EMBEDDING_DIMENSIONS`) và các biến tuỳ chọn: xem [docs/ai/07-env-and-setup.md](docs/ai/07-env-and-setup.md) |
 
@@ -130,7 +130,7 @@ Rồi bỏ comment khối `MAIL_*` / `SMTP_*` trong `.env` (mẫu ở `.env.exam
 
 `npm run db:seed` **xoá toàn bộ dữ liệu hiện có** rồi nạp lại (từ chối chạy khi `NODE_ENV=production`). Kết quả cố định giữa các lần chạy.
 
-Nội dung: 20 category (cây Nam / Nữ / Unisex + Phụ kiện), 125 sản phẩm, 378 ảnh tạm (picsum.photos, ngẫu nhiên, không liên quan quần áo; ảnh thật tải lên qua trang Admin), 1.113 biến thể size × màu (một số hết hàng), 83 dòng size chart.
+Nội dung: 20 category (cây Nam / Nữ / Unisex + Phụ kiện), 125 sản phẩm, 814 ảnh tạm (5-8 ảnh mỗi sản phẩm, picsum.photos, ngẫu nhiên, không liên quan quần áo; ảnh thật tải lên qua trang Admin), 1.113 biến thể size × màu (một số hết hàng), 83 dòng size chart.
 
 Dữ liệu nằm trong `prisma/seed-data/` để dễ chỉnh:
 

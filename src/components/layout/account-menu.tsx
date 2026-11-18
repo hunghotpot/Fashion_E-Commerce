@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import Link from "next/link"
-import { LayoutDashboardIcon, LogOutIcon, MapPinIcon, ShoppingBagIcon, TicketPercentIcon, UserRoundIcon } from "lucide-react"
+import { HeartIcon, LayoutDashboardIcon, LogOutIcon, MapPinIcon, ShoppingBagIcon, TicketPercentIcon, UserRoundIcon } from "lucide-react"
 import { logoutAction } from "@/app/actions/auth"
 import { TierBadge } from "@/components/account/tier-badge"
 import { Button } from "@/components/ui/button"
@@ -71,6 +71,11 @@ export function AccountMenu({ user }: { user: AccountMenuUser }) {
         {user.role === "CUSTOMER" && (
           <DropdownMenuItem render={<Link href="/account/vouchers" />}>
             <TicketPercentIcon /> Voucher của tôi
+          </DropdownMenuItem>
+        )}
+        {user.role === "CUSTOMER" && (
+          <DropdownMenuItem render={<Link href="/account/wishlist" />}>
+            <HeartIcon /> Sản phẩm yêu thích
           </DropdownMenuItem>
         )}
         {user.role === "ADMIN" && (
