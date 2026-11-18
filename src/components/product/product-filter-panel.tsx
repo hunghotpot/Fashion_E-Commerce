@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -12,11 +12,12 @@ import type { FilterListKey } from "@/lib/validators/product-filter"
 import type { FacetValue, ProductFacets } from "@/types/catalog"
 
 const COLLAPSED_COUNT = 6
+const COLLAPSED_COLORS = 8
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <details open className="group border-b border-border py-5 first:pt-0">
-      <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-bold uppercase [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold tracking-[0.14em] uppercase [&::-webkit-details-marker]:hidden">
         {title}
         <span aria-hidden className="text-muted-foreground transition-transform group-open:rotate-180">
           ⌄
@@ -69,7 +70,7 @@ function CheckList({
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="self-start text-xs font-bold text-primary hover:underline"
+          className="self-start text-xs font-semibold text-primary hover:underline"
         >
           {expanded ? "Thu gọn" : `Xem thêm (${all.length - shown.length})`}
         </button>
@@ -77,6 +78,18 @@ function CheckList({
     </div>
   )
 }
+
+// Mức giá chọn nhanh (VND). Bấm lại mức đang chọn để bỏ lọc.
+const PRICE_PRESETS: { label: string; min?: number; max?: number }[] = [
+  { label: "Dưới 200 nghìn", max: 200_000 },
+  { label: "200 - 500 nghìn", min: 200_000, max: 500_000 },
+  { label: "500 nghìn - 1 triệu", min: 500_000, max: 1_000_000 },
+  { label: "Trên 1 triệu", min: 1_000_000 },
+]
+
+const digits = (v: string) => v.replace(/\D/g, "").slice(0, 9)
+/** "1250000" → "1.250.000" (hiện ngay khi gõ để khỏi phải đếm số 0). */
+const grouped = (v: string) => (v === "" ? "" : Number(v).toLocaleString("vi-VN"))
 
 function PriceRange({ range }: { range: ProductFacets["price"] }) {
   const { filters, update } = useProductFilters()
@@ -91,30 +104,47 @@ function PriceRange({ range }: { range: ProductFacets["price"] }) {
 
   return (
     <form onSubmit={apply} className="flex flex-col gap-3">
+      <div role="group" aria-label="Mức giá chọn nhanh" className="flex flex-wrap gap-2">
+        {PRICE_PRESETS.map((p) => {
+          const active = filters.minPrice === p.min && filters.maxPrice === p.max
+          return (
+            <button
+              key={p.label}
+              type="button"
+              aria-pressed={active}
+              onClick={() => update(active ? { minPrice: undefined, maxPrice: undefined } : { minPrice: p.min, maxPrice: p.max })}
+              className={cn(
+                "h-8 border px-3 text-xs font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40",
+                active ? "border-ink bg-ink text-white" : "border-border bg-card hover:bg-secondary"
+              )}
+            >
+              {p.label}
+            </button>
+          )
+        })}
+      </div>
       <div className="flex items-center gap-2">
         <Input
           size="sm"
-          type="number"
+          type="text"
           inputMode="numeric"
-          min={0}
-          step={10000}
-          aria-label="Giá từ"
-          placeholder={range ? String(range.min) : "Từ"}
-          value={min}
-          onChange={(e) => setMin(e.target.value)}
+          autoComplete="off"
+          aria-label="Giá từ (đồng)"
+          placeholder={range ? grouped(String(range.min)) : "Từ"}
+          value={grouped(min)}
+          onChange={(e) => setMin(digits(e.target.value))}
           className="px-3"
         />
         <span aria-hidden className="text-muted-foreground">–</span>
         <Input
           size="sm"
-          type="number"
+          type="text"
           inputMode="numeric"
-          min={0}
-          step={10000}
-          aria-label="Giá đến"
-          placeholder={range ? String(range.max) : "Đến"}
-          value={max}
-          onChange={(e) => setMax(e.target.value)}
+          autoComplete="off"
+          aria-label="Giá đến (đồng)"
+          placeholder={range ? grouped(String(range.max)) : "Đến"}
+          value={grouped(max)}
+          onChange={(e) => setMax(digits(e.target.value))}
           className="px-3"
         />
       </div>
@@ -132,6 +162,13 @@ function PriceRange({ range }: { range: ProductFacets["price"] }) {
 
 export function ProductFilterPanel({ facets, idPrefix }: { facets: ProductFacets; idPrefix: string }) {
   const { filters, update, toggle } = useProductFilters()
+
+  const [colorsExpanded, setColorsExpanded] = useState(false)
+  const allColors = withSelected(facets.colors, filters.color)
+  // Khi thu gọn: top N theo số lượng + mọi màu đang chọn (giữ sidebar không quá dài).
+  const shownColors = colorsExpanded
+    ? allColors
+    : allColors.filter((c, i) => i < COLLAPSED_COLORS || filters.color.includes(c.value))
 
   return (
     <div>
@@ -196,7 +233,7 @@ export function ProductFilterPanel({ facets, idPrefix }: { facets: ProductFacets
       {facets.colors.length > 0 && (
         <Group title="Màu sắc">
           <div className="flex flex-col gap-1">
-            {withSelected(facets.colors, filters.color).map((c) => {
+            {shownColors.map((c) => {
               const active = filters.color.includes(c.value)
               const hex = "hex" in c ? (c as { hex: string }).hex : "#cccccc"
               return (
@@ -208,7 +245,7 @@ export function ProductFilterPanel({ facets, idPrefix }: { facets: ProductFacets
                   onClick={() => toggle("color", c.value)}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-2 py-1.5 text-left text-label transition-colors hover:bg-secondary disabled:opacity-40",
-                    active && "bg-secondary font-bold"
+                    active && "bg-secondary font-semibold"
                   )}
                 >
                   <span
@@ -221,6 +258,15 @@ export function ProductFilterPanel({ facets, idPrefix }: { facets: ProductFacets
                 </button>
               )
             })}
+            {allColors.length > COLLAPSED_COLORS && (
+              <button
+                type="button"
+                onClick={() => setColorsExpanded((e) => !e)}
+                className="mt-2 self-start px-2 text-xs font-semibold text-primary hover:underline"
+              >
+                {colorsExpanded ? "Thu gọn" : `Xem thêm (${allColors.length - shownColors.length})`}
+              </button>
+            )}
           </div>
         </Group>
       )}
@@ -246,7 +292,7 @@ export function ProductFilterPanel({ facets, idPrefix }: { facets: ProductFacets
 
 function chipClass(active: boolean) {
   return cn(
-    "inline-flex h-9 items-center rounded-md border px-3 text-label font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+    "inline-flex h-9 items-center rounded-md border px-3 text-label font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
     active ? "border-ink bg-ink text-white" : "border-border-strong bg-white hover:border-ink"
   )
 }

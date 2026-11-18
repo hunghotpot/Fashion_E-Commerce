@@ -1,7 +1,7 @@
 import "server-only"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
-import { LOW_STOCK_THRESHOLD, stockStatus, type StockStatus } from "@/lib/inventory"
+import { stockStatus, type StockStatus } from "@/lib/inventory"
 import { sizeRank } from "@/lib/product-variants"
 import {
   adjustStockSchema,
@@ -18,6 +18,8 @@ import {
   type UpdateProductInput,
 } from "@/lib/validators/admin-catalog"
 import { db } from "@/server/db"
+import { getShopSettings } from "./shop-settings.service"
+import { notifyLowStock } from "@/server/services/admin-notification.service"
 import {
   AdminCatalogError,
   notifyProductChanged,
@@ -162,7 +164,7 @@ async function categoryScope(where: { id: string } | { slug: string }): Promise<
   return c ? [c.id, ...c.children.map((x) => x.id)] : []
 }
 
-async function listWhere(f: ReturnType<typeof adminProductFilterSchema.parse>): Promise<Prisma.ProductWhereInput> {
+async function listWhere(f: ReturnType<typeof adminProductFilterSchema.parse>, lowStock: number): Promise<Prisma.ProductWhereInput> {
   const and: Prisma.ProductWhereInput[] = []
   if (f.isActive !== undefined) and.push({ isActive: f.isActive })
   if (f.categoryId) and.push({ categoryId: { in: await categoryScope({ id: f.categoryId }) } })
@@ -175,8 +177,8 @@ async function listWhere(f: ReturnType<typeof adminProductFilterSchema.parse>): 
       f.stockStatus === "OUT"
         ? { lte: 0 }
         : f.stockStatus === "LOW"
-          ? { gt: 0, lte: LOW_STOCK_THRESHOLD }
-          : { gt: LOW_STOCK_THRESHOLD }
+          ? { gt: 0, lte: lowStock }
+          : { gt: lowStock }
     const groups = await db.productVariant.groupBy({
       by: ["productId"],
       where: { product: { AND: and } },
@@ -202,19 +204,19 @@ const listSelect = {
 
 type ListRow = Prisma.ProductGetPayload<{ select: typeof listSelect }>
 
-function groupByColor(variants: ListRow["variants"]): AdminColorGroup[] {
+function groupByColor(variants: ListRow["variants"], lowStock: number): AdminColorGroup[] {
   const groups = new Map<string, AdminColorGroup>()
   const sorted = [...variants].sort((a, b) => a.color.localeCompare(b.color, "vi") || sizeRank(a.size) - sizeRank(b.size))
   for (const v of sorted) {
     let g = groups.get(v.color)
     if (!g) groups.set(v.color, (g = { color: v.color, colorHex: v.colorHex, totalStock: 0, sizes: [] }))
     g.totalStock += v.stock
-    g.sizes.push({ variantId: v.id, sku: v.sku, size: v.size, price: v.price, stock: v.stock, status: stockStatus(v.stock) })
+    g.sizes.push({ variantId: v.id, sku: v.sku, size: v.size, price: v.price, stock: v.stock, status: stockStatus(v.stock, lowStock) })
   }
   return [...groups.values()]
 }
 
-function toListItem(p: ListRow): AdminProductListItem {
+function toListItem(p: ListRow, lowStock: number): AdminProductListItem {
   const totalStock = p.variants.reduce((s, v) => s + v.stock, 0)
   const prices = p.variants.map((v) => v.price)
   return {
@@ -228,16 +230,17 @@ function toListItem(p: ListRow): AdminProductListItem {
     priceMax: prices.length ? Math.max(...prices) : p.basePrice,
     isActive: p.isActive,
     totalStock,
-    status: stockStatus(totalStock),
+    status: stockStatus(totalStock, lowStock),
     skus: [...p.variants].sort((a, b) => a.sku.localeCompare(b.sku)).map((v) => v.sku),
-    colors: groupByColor(p.variants),
+    colors: groupByColor(p.variants, lowStock),
   }
 }
 
 /** Danh sách cho bảng Tồn kho & Sản phẩm: tìm tên/SKU/tag, lọc danh mục (gốc gồm cả con), trạng thái tồn, hiển thị, phân trang. */
 export async function listAdminProducts(input: AdminProductFilterInput = {}): Promise<AdminProductListResult> {
   const f = parseInput(adminProductFilterSchema, input)
-  const where = await listWhere(f)
+  const { lowStockThreshold } = await getShopSettings()
+  const where = await listWhere(f, lowStockThreshold)
   const [rows, total] = await Promise.all([
     db.product.findMany({
       where,
@@ -249,7 +252,7 @@ export async function listAdminProducts(input: AdminProductFilterInput = {}): Pr
     db.product.count({ where }),
   ])
   return {
-    items: rows.map(toListItem),
+    items: rows.map((r) => toListItem(r, lowStockThreshold)),
     total,
     page: f.page,
     pageSize: f.pageSize,
@@ -260,11 +263,12 @@ export async function listAdminProducts(input: AdminProductFilterInput = {}): Pr
 /* ─────────────────────────── Thẻ tổng quan & cảnh báo ─────────────────────────── */
 
 export async function getInventorySummary(): Promise<InventorySummary> {
+  const { lowStockThreshold } = await getShopSettings()
   const [groups, productCount, valueRows, lowVariants, outVariants] = await Promise.all([
     db.productVariant.groupBy({ by: ["productId"], _sum: { stock: true } }),
     db.product.count(),
     db.$queryRaw<{ value: bigint }[]>`SELECT COALESCE(SUM("price"::bigint * "stock"), 0)::bigint AS value FROM "ProductVariant"`,
-    db.productVariant.count({ where: { stock: { gt: 0, lte: LOW_STOCK_THRESHOLD } } }),
+    db.productVariant.count({ where: { stock: { gt: 0, lte: lowStockThreshold } } }),
     db.productVariant.count({ where: { stock: { lte: 0 } } }),
   ])
   let totalStock = 0
@@ -273,7 +277,7 @@ export async function getInventorySummary(): Promise<InventorySummary> {
   for (const g of groups) {
     const s = g._sum.stock ?? 0
     totalStock += s
-    const st = stockStatus(s)
+    const st = stockStatus(s, lowStockThreshold)
     if (st === "LOW") low++
     else if (st === "OUT") out++
   }
@@ -292,9 +296,10 @@ export async function getInventorySummary(): Promise<InventorySummary> {
 /** `only.productIds`: giới hạn trong vài sản phẩm (vd trang chi tiết sản phẩm); bỏ trống = toàn cửa hàng. */
 export async function listLowStockVariants(limit = 10, only?: { productIds?: string[] }): Promise<LowStockEntry[]> {
   const take = parseInput(lowStockLimitSchema, limit)
+  const { lowStockThreshold } = await getShopSettings()
   const rows = await db.productVariant.findMany({
     where: {
-      stock: { lte: LOW_STOCK_THRESHOLD },
+      stock: { lte: lowStockThreshold },
       product: { isActive: true, ...(only?.productIds ? { id: { in: only.productIds } } : {}) },
     },
     orderBy: [{ stock: "asc" }, { id: "asc" }],
@@ -315,7 +320,7 @@ export async function listLowStockVariants(limit = 10, only?: { productIds?: str
     if (!g) {
       groups.set(key, (g = { productId: v.product.id, productName: v.product.name, image: v.product.images[0] ?? null, color: v.color, colorHex: v.colorHex, sizes: [] }))
     }
-    g.sizes.push({ variantId: v.id, sku: v.sku, size: v.size, stock: v.stock, status: stockStatus(v.stock) })
+    g.sizes.push({ variantId: v.id, sku: v.sku, size: v.size, stock: v.stock, status: stockStatus(v.stock, lowStockThreshold) })
   }
   return [...groups.values()].slice(0, take).map((g) => ({ ...g, sizes: g.sizes.sort((a, b) => sizeRank(a.size) - sizeRank(b.size)) }))
 }
@@ -348,6 +353,7 @@ const detailSelect = {
 /** Dữ liệu điền form sửa; null nếu không có sản phẩm (kể cả đang ẩn). */
 export async function getAdminProduct(id: string): Promise<AdminProductDetail | null> {
   const pid = parseInput(adminIdSchema, id)
+  const { lowStockThreshold } = await getShopSettings()
   const [p, orderRefs] = await Promise.all([
     db.product.findUnique({ where: { id: pid }, select: detailSelect }),
     db.orderItem.count({ where: { variant: { productId: pid } } }),
@@ -355,7 +361,7 @@ export async function getAdminProduct(id: string): Promise<AdminProductDetail | 
   if (!p) return null
   const variants = [...p.variants].sort((a, b) => a.color.localeCompare(b.color, "vi") || sizeRank(a.size) - sizeRank(b.size))
   const totalStock = variants.reduce((s, v) => s + v.stock, 0)
-  return { ...p, variants, totalStock, status: stockStatus(totalStock), hasOrders: orderRefs > 0 }
+  return { ...p, variants, totalStock, status: stockStatus(totalStock, lowStockThreshold), hasOrders: orderRefs > 0 }
 }
 
 /* ─────────────────────────── Tạo / sửa / ẩn / xoá ─────────────────────────── */
@@ -432,7 +438,7 @@ export async function updateProduct(admin: AdminContext, id: string, input: Upda
 
   await withUniqueErrors(() =>
     db.$transaction(async (tx) => {
-      const existing = await tx.product.findUnique({ where: { id: pid }, select: { slug: true, variants: { select: { id: true } } } })
+      const existing = await tx.product.findUnique({ where: { id: pid }, select: { slug: true, variants: { select: { id: true, stock: true } } } })
       if (!existing) throw new AdminCatalogError("PRODUCT_NOT_FOUND", "Sản phẩm không tồn tại")
       await assertCategory(tx, data.categoryId)
 
@@ -444,6 +450,7 @@ export async function updateProduct(admin: AdminContext, id: string, input: Upda
       }
 
       const owned = new Set(existing.variants.map((v) => v.id))
+      const previousStock = new Map(existing.variants.map((v) => [v.id, v.stock]))
       const keepIds = variants.flatMap((v) => (v.id ? [v.id] : []))
       if (keepIds.some((k) => !owned.has(k))) throw new AdminCatalogError("VARIANT_NOT_FOUND", "Có biến thể không thuộc sản phẩm này")
       const removeIds = [...owned].filter((o) => !keepIds.includes(o))
@@ -476,8 +483,13 @@ export async function updateProduct(admin: AdminContext, id: string, input: Upda
 
       for (const v of variants) {
         const fields = { sku: v.sku, size: v.size, color: v.color, colorHex: v.colorHex, price: v.price, stock: v.stock }
-        if (v.id) await tx.productVariant.update({ where: { id: v.id }, data: fields })
-        else await tx.productVariant.create({ data: { ...fields, productId: pid } })
+        if (v.id) {
+          await tx.productVariant.update({ where: { id: v.id }, data: fields })
+          const before = previousStock.get(v.id)
+          if (data.isActive && before !== undefined) {
+            await notifyLowStock(tx, { productName: data.name, size: v.size, color: v.color, before, after: v.stock })
+          }
+        } else await tx.productVariant.create({ data: { ...fields, productId: pid } })
       }
     })
   )
@@ -526,11 +538,19 @@ export async function adjustStock(admin: AdminContext, variantId: string, input:
   const change = parseInput(adjustStockSchema, input)
 
   const result = await db.$transaction(async (tx) => {
-    const v = await tx.productVariant.findUnique({ where: { id: vid }, select: { productId: true, sku: true, stock: true } })
+    const v = await tx.productVariant.findUnique({
+      where: { id: vid },
+      select: { productId: true, sku: true, stock: true, size: true, color: true, product: { select: { name: true, isActive: true } } },
+    })
     if (!v) throw new AdminCatalogError("VARIANT_NOT_FOUND", "Biến thể không tồn tại")
+    // Báo Admin khi tồn vừa tụt xuống ngưỡng sắp hết (chỉ sản phẩm đang bán).
+    const warn = async (before: number, after: number) => {
+      if (v.product.isActive) await notifyLowStock(tx, { productName: v.product.name, size: v.size, color: v.color, before, after })
+    }
 
     if (change.newStock !== undefined) {
       await tx.productVariant.update({ where: { id: vid }, data: { stock: change.newStock } })
+      await warn(v.stock, change.newStock)
       return { variantId: vid, productId: v.productId, sku: v.sku, previousStock: v.stock, stock: change.newStock }
     }
 
@@ -542,6 +562,7 @@ export async function adjustStock(admin: AdminContext, variantId: string, input:
       await tx.productVariant.update({ where: { id: vid }, data: { stock: { increment: delta } } })
     }
     const after = await tx.productVariant.findUniqueOrThrow({ where: { id: vid }, select: { stock: true } })
+    await warn(after.stock - delta, after.stock)
     return { variantId: vid, productId: v.productId, sku: v.sku, previousStock: after.stock - delta, stock: after.stock }
   })
 

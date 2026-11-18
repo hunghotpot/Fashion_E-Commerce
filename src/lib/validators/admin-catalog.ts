@@ -41,7 +41,7 @@ export function slugify(text: string): string {
     .replace(/-+$/g, "")
 }
 
-/** SKU biến thể khi Admin chỉ nhập một SKU chung (Figma): `${tiền tố}-${MÀU}-${SIZE}`, ví dụ TEE-001-DEN-M. */
+/** SKU biến thể khi Admin chỉ nhập một SKU chung: `${tiền tố}-${MÀU}-${SIZE}`, ví dụ TEE-001-DEN-M. */
 export function buildVariantSku(skuPrefix: string, color: string, size: string): string {
   const part = (s: string) => slugify(s).toUpperCase() || "X"
   return `${skuPrefix.trim().toUpperCase()}-${part(color)}-${part(size)}`
@@ -158,7 +158,7 @@ const productBase = z.object({
     .max(100, "Slug tối đa 100 ký tự")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug chỉ gồm chữ thường không dấu, số và dấu gạch ngang")
     .optional(),
-  /** Tiền tố để sinh SKU cho biến thể không có `sku` riêng (ô "SKU" của Figma). */
+  /** Tiền tố để sinh SKU cho biến thể không có `sku` riêng (ô "SKU" trong form sản phẩm). */
   skuPrefix: z
     .string()
     .trim()

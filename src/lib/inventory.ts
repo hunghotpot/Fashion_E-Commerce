@@ -1,6 +1,6 @@
 /*
  * Quy tắc tồn kho dùng chung cho Admin (Tồn kho & Sản phẩm, Tổng quan). Hàm thuần, không chạm DB.
- * Ngưỡng là hằng số mặc định; màn Cài đặt hệ thống trong Figma có ô "mức tồn tối thiểu" nhưng CHƯA có bảng cấu hình.
+ * Ngưỡng dưới đây là mặc định; Admin chỉnh ở Cài đặt hệ thống (ShopSettings) và truyền vào `stockStatus`.
  */
 
 /** Tồn kho ≤ ngưỡng (và > 0) coi là "Sắp hết". */

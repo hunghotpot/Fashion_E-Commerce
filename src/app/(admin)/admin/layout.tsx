@@ -1,7 +1,9 @@
 import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminPageTitle } from "@/components/admin/admin-page-title"
 import { AdminMobileNav, AdminSidebar } from "@/components/admin/admin-sidebar"
+import { SkipLink } from "@/components/layout/skip-link"
 import { requireAdmin } from "@/server/auth/session"
+import { listAdminNotifications } from "@/server/services/admin-notification.service"
 import { getOrderStatusCounts } from "@/server/services/admin-order.service"
 
 // Luôn render theo request: dữ liệu Admin không được cache và cần kiểm quyền mỗi lần.
@@ -14,17 +16,20 @@ export const dynamic = "force-dynamic"
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdmin("/admin")
-  const { PENDING: pendingOrders } = await getOrderStatusCounts()
+  const [{ PENDING: pendingOrders }, notifications] = await Promise.all([getOrderStatusCounts(), listAdminNotifications(admin.id)])
 
   return (
     <div className="min-h-screen bg-background p-3 sm:p-6">
+      <SkipLink />
       <div className="mx-auto max-w-[1440px] space-y-6 rounded-3xl bg-card p-4 sm:space-y-8 sm:p-8">
-        <AdminHeader user={{ name: admin.name }} pendingOrders={pendingOrders} />
+        <AdminHeader user={{ name: admin.name }} notifications={notifications} />
         <AdminPageTitle />
         <AdminMobileNav pendingOrders={pendingOrders} />
         <div className="grid gap-6 lg:grid-cols-[270px_minmax(0,1fr)]">
           <AdminSidebar pendingOrders={pendingOrders} />
-          <main className="min-w-0 space-y-6">{children}</main>
+          <main id="main-content" tabIndex={-1} className="min-w-0 space-y-6 outline-none">
+            {children}
+          </main>
         </div>
       </div>
     </div>

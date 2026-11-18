@@ -30,7 +30,7 @@ export function CategoryFilter({ categories }: { categories: { id: string; name:
       <SelectContent>
         <SelectItem value={ALL}>Tất cả danh mục</SelectItem>
         {categories.map((c) => (
-          <SelectItem key={c.id} value={c.id} className={c.depth ? "pl-6" : "font-bold"}>
+          <SelectItem key={c.id} value={c.id} className={c.depth ? "pl-6" : "font-semibold"}>
             {c.name}
           </SelectItem>
         ))}

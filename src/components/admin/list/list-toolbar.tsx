@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { Input } from "@/components/ui/input"
 
 export interface ToolbarFilter {
@@ -13,7 +13,7 @@ export interface ToolbarFilter {
 const SEARCH_DEBOUNCE_MS = 350
 
 /*
- * Thanh công cụ của màn danh sách (Figma): ô tìm kiếm, hàng nút lọc (nút đang chọn nền ink), chỗ đặt nút hành động bên phải.
+ * Thanh công cụ của màn danh sách: ô tìm kiếm, hàng nút lọc (nút đang chọn nền ink), chỗ đặt nút hành động bên phải.
  * Trạng thái nằm trong URL: ?q= và ?<filterParam>= (mặc định "status"); đổi bộ lọc luôn đưa về trang 1.
  * Trang (server) đọc lại searchParams và tự validate bằng Zod của nó.
  */
@@ -63,7 +63,7 @@ export function ListToolbar({
 
   const pill = (active: boolean) =>
     cn(
-      "h-11 shrink-0 rounded-xl border px-4 text-label font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
+      "h-11 shrink-0 rounded-xl border px-4 text-label font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
       active ? "border-ink bg-ink text-white" : "border-border bg-card text-sidebar-foreground hover:bg-secondary"
     )
 

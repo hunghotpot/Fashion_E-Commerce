@@ -63,7 +63,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
           unit="biến thể (màu × size)"
           chip={summary.outOfStockVariants > 0 ? "Hết" : "Ổn định"}
           chipTitle={`${summary.outOfStockProducts} sản phẩm hết hàng hoàn toàn`}
-          chipTone={summary.outOfStockVariants > 0 ? "brand" : "info"}
+          chipTone={summary.outOfStockVariants > 0 ? "danger" : "info"}
         />
       </StatGrid>
 

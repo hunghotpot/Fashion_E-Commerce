@@ -80,7 +80,10 @@ export function ProductListing({
 
   return (
     <div className="grid gap-8 pb-16 lg:grid-cols-[260px_1fr]">
-      <aside aria-label="Bộ lọc sản phẩm" className="hidden lg:block">
+      <aside
+        aria-label="Bộ lọc sản phẩm"
+        className="hidden pr-2 lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto"
+      >
         <Suspense fallback={<SidebarSkeleton />}>
           <Sidebar qs={qs} category={category} />
         </Suspense>
@@ -138,7 +141,7 @@ async function ResultCount({ qs, category }: { qs: string; category?: string }) 
   const { total } = await getListing(qs, category)
   return (
     <p className="text-label text-muted-foreground">
-      <span className="font-bold text-foreground">{total}</span> sản phẩm
+      <span className="font-semibold text-foreground">{total}</span> sản phẩm
     </p>
   )
 }
@@ -167,13 +170,13 @@ async function Results({ qs, category, basePath }: { qs: string; category?: stri
   if (result.items.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border-strong px-6 py-16 text-center">
-        <p className="text-lg font-bold">Không tìm thấy sản phẩm phù hợp</p>
+        <p className="font-heading text-2xl font-semibold">Không tìm thấy sản phẩm phù hợp</p>
         <p className="max-w-sm text-label text-muted-foreground">
           Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.
         </p>
         <Link
           href={basePath}
-          className="inline-flex h-11 items-center rounded-full bg-ink px-6 text-sm font-bold text-white hover:bg-ink/90"
+          className="inline-flex h-11 items-center rounded-none bg-ink px-6 text-sm font-semibold text-white hover:bg-ink/90"
         >
           Xoá tất cả bộ lọc
         </Link>
@@ -183,9 +186,10 @@ async function Results({ qs, category, basePath }: { qs: string; category?: stri
 
   return (
     <>
+      <h2 className="sr-only">Danh sách sản phẩm</h2>
       <div className={GRID}>
-        {result.items.map((p) => (
-          <ProductCard key={p.id} product={p} />
+        {result.items.map((p, i) => (
+          <ProductCard key={p.id} product={p} priority={i < 3} />
         ))}
       </div>
       <ProductPagination
@@ -198,12 +202,12 @@ async function Results({ qs, category, basePath }: { qs: string; category?: stri
   )
 }
 
-function GridSkeleton() {
+export function GridSkeleton() {
   return (
     <div className={GRID} aria-hidden>
       {Array.from({ length: 12 }, (_, i) => (
         <div key={i} className="space-y-3">
-          <Skeleton className="aspect-6/5 w-full" />
+          <Skeleton className="aspect-4/5 w-full" />
           <div className="space-y-2">
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-3.5 w-1/2" />
@@ -215,7 +219,7 @@ function GridSkeleton() {
   )
 }
 
-function SidebarSkeleton() {
+export function SidebarSkeleton() {
   return (
     <div className="space-y-6" aria-hidden>
       {Array.from({ length: 5 }, (_, i) => (

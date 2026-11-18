@@ -4,7 +4,10 @@ import { LoginForm } from "@/components/auth/login-form"
 import { safeNextPath } from "@/lib/validators/auth"
 import { getCurrentUser } from "@/server/auth/session"
 
-export const metadata: Metadata = { title: "Đăng nhập" }
+export const metadata: Metadata = {
+  title: "Đăng nhập",
+  description: "Đăng nhập để theo dõi đơn hàng, lưu địa chỉ giao hàng và mua sắm nhanh hơn.",
+}
 
 export default async function LoginPage({
   searchParams,
@@ -16,7 +19,7 @@ export default async function LoginPage({
 
   return (
     <>
-      <h1 className="text-3xl font-bold">Đăng nhập</h1>
+      <h1 className="text-4xl font-semibold">Đăng nhập</h1>
       <p className="mt-2 mb-8 text-label text-muted-foreground">Chào mừng bạn quay lại.</p>
       <LoginForm next={next === "/" ? undefined : next} />
     </>

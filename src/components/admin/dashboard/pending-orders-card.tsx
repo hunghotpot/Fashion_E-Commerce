@@ -21,10 +21,10 @@ export function PendingOrdersCard({ orders }: { orders: DashboardStats["pendingO
   return (
     <section aria-labelledby="pending-orders-title" className="rounded-3xl border border-border bg-card p-6">
       <div className="flex items-start justify-between gap-3">
-        <h2 id="pending-orders-title" className="text-base font-bold">
+        <h2 id="pending-orders-title" className="font-sans text-base font-semibold">
           Đơn hàng mới nhất cần xử lý
         </h2>
-        <Link href="/admin/orders" className="inline-flex items-center gap-1 text-xs font-bold hover:underline">
+        <Link href="/admin/orders" className="inline-flex min-h-6 items-center gap-1 text-xs font-semibold hover:underline pointer-coarse:min-h-11">
           Xem tất cả đơn <ArrowRightIcon className="size-3.5" aria-hidden />
         </Link>
       </div>
@@ -36,17 +36,17 @@ export function PendingOrdersCard({ orders }: { orders: DashboardStats["pendingO
           <AdminTable columns={COLUMNS} minWidth={640}>
             {orders.map((o) => (
               <AdminTr key={o.id}>
-                <td className="font-bold whitespace-nowrap">
+                <td className="font-semibold whitespace-nowrap">
                   <Link href={`/admin/orders?q=${encodeURIComponent(o.code)}`} className="hover:underline">
                     #{o.code}
                   </Link>
                 </td>
-                <td className="font-bold">{o.customerName}</td>
+                <td className="font-semibold">{o.customerName}</td>
                 <td className="text-muted-foreground">
                   {o.itemCount} sản phẩm · {PAYMENT_METHOD_SHORT[o.paymentMethod] ?? o.paymentMethod}
                   <span className="block text-xs text-subtle-foreground">{formatDayMonthTime(o.createdAt)}</span>
                 </td>
-                <td className="font-bold whitespace-nowrap text-brand">{formatVnd(o.total)}</td>
+                <td className="font-semibold whitespace-nowrap text-brand">{formatVnd(o.total)}</td>
                 <td>
                   <StatusPill tone={ADMIN_ORDER_STATUS_TONE[o.status]}>{ADMIN_ORDER_STATUS_LABEL[o.status]}</StatusPill>
                 </td>

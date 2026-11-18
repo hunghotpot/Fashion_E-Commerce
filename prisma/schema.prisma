@@ -73,12 +73,16 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  addresses          Address[]
-  cart               Cart?
-  orders             Order[]
-  refreshTokens      RefreshToken[]
-  orderStatusChanges OrderStatusHistory[]
-  aiChatLogs         AiChatLog[]
+  addresses                Address[]
+  cart                     Cart?
+  orders                   Order[]
+  refreshTokens            RefreshToken[]
+  orderStatusChanges       OrderStatusHistory[]
+  aiChatLogs               AiChatLog[]
+  notifications            Notification[]
+  adminNotificationsSeenAt DateTime? // mốc "đã đọc" của hộp thư Admin: thông báo mới hơn mốc này là chưa đọc
+  adminNotificationReads   AdminNotificationRead[]
+  voucherAssignments       VoucherAssignment[]
 }
 
 // Refresh token opaque: chỉ lưu SHA-256 của token (không lưu token gốc).
@@ -106,7 +110,6 @@ model Address {
   phone     String
   street    String
   ward      String
-  district  String
   province  String
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -130,6 +133,7 @@ model Category {
   children   Category[]  @relation("CategoryTree")
   products   Product[]
   sizeCharts SizeChart[]
+  vouchers   Voucher[]
 
   @@index([parentId])
 }
@@ -153,7 +157,7 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category  Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   images    ProductImage[]
   variants  ProductVariant[]
   embedding ProductEmbedding?
@@ -204,14 +208,14 @@ model ProductVariant {
 // Cột `embedding` là vector(1024) theo bge-m3; Prisma Client không đọc/ghi kiểu này nên dùng $queryRaw / $executeRaw.
 // Chỉ mục HNSW (vector_cosine_ops) nằm trong file migration vì Prisma không biểu diễn được.
 model ProductEmbedding {
-  productId       String   @id
+  productId       String                      @id
   embedding       Unsupported("vector(1024)")
   content         String // đúng chuỗi đã embed
   contentHash     String // sha256(content | model | templateVersion)
   model           String
   dimensions      Int
-  templateVersion Int      @default(1)
-  embeddedAt      DateTime @default(now())
+  templateVersion Int                         @default(1)
+  embeddedAt      DateTime                    @default(now())
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
@@ -220,7 +224,7 @@ model ProductEmbedding {
 // Khoá tự nhiên là (source, title). `embedding` là vector(1024) theo bge-m3; chỉ đọc/ghi bằng SQL thô như ProductEmbedding.
 // Không có chỉ mục vector: vài chục đoạn thì quét tuần tự đã đủ nhanh và tránh thêm lệch schema với Prisma.
 model KnowledgeChunk {
-  id              String   @id
+  id              String                      @id
   source          String // tên file nguồn, ví dụ "care.md"
   type            String // care | styling | policy | faq
   title           String
@@ -229,8 +233,8 @@ model KnowledgeChunk {
   embedding       Unsupported("vector(1024)")
   contentHash     String // sha256(tiêu đề + nội dung | model | templateVersion): đổi thì phải embed lại
   model           String
-  templateVersion Int      @default(1)
-  updatedAt       DateTime @default(now())
+  templateVersion Int                         @default(1)
+  updatedAt       DateTime                    @default(now())
 
   @@unique([source, title])
   @@index([type])
@@ -239,23 +243,23 @@ model KnowledgeChunk {
 // Nhật ký một lượt chat với trợ lý (docs/ai/05-safety-and-guardrails.md mục 7). Mức 0 luôn ghi số liệu kỹ thuật và tên tool;
 // `params` chỉ có ở mức 1 trở lên (đã che PII); `userText`/`replyText` chỉ có ở mức 2 và bị xoá sau vài ngày (purge).
 model AiChatLog {
-  id         String   @id @default(cuid())
-  createdAt  DateTime @default(now())
-  userId     String
-  level      Int
-  model      String
-  status     String // ok | fallback | error | bare_confirmation
-  claim      String? // lý do cổng kiểm chứng can thiệp (catalog, size, order...), nếu có
-  retries    Int      @default(0)
-  latencyMs  Int
-  ttftMs     Int?
-  tokensIn   Int      @default(0)
-  tokensOut  Int      @default(0)
-  tools      Json // [{ name, ok, code?, ms }]
-  params     Json? // [{ name, input }] đã che PII (mức >= 1)
-  error      String?
-  userText   String? // mức 2
-  replyText  String? // mức 2
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String
+  level     Int
+  model     String
+  status    String // ok | fallback | error | bare_confirmation
+  claim     String? // lý do cổng kiểm chứng can thiệp (catalog, size, order...), nếu có
+  retries   Int      @default(0)
+  latencyMs Int
+  ttftMs    Int?
+  tokensIn  Int      @default(0)
+  tokensOut Int      @default(0)
+  tools     Json // [{ name, ok, code?, ms }]
+  params    Json? // [{ name, input }] đã che PII (mức >= 1)
+  error     String?
+  userText  String? // mức 2
+  replyText String? // mức 2
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -319,26 +323,112 @@ model OrderSequence {
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  code            String        @unique // mã dễ đọc, vd FS-20261109-0001
-  userId          String
-  status          OrderStatus   @default(PENDING)
-  subtotal        Int // VND, tổng tiền hàng
-  shippingFee     Int           @default(0) // VND
-  total           Int // VND, = subtotal + shippingFee tại thời điểm đặt
-  note            String?
-  shippingAddress Json // snapshot địa chỉ giao hàng
-  paymentMethod   PaymentMethod
-  paymentStatus   PaymentStatus @default(PENDING)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                     String        @id @default(cuid())
+  code                   String        @unique // mã dễ đọc, vd FS-20261109-0001
+  userId                 String
+  status                 OrderStatus   @default(PENDING)
+  subtotal               Int // VND, tổng tiền hàng
+  shippingFee            Int           @default(0) // VND
+  discount               Int           @default(0) // VND, số tiền mã GIẢM GIÁ (CASH/PERCENT) đã trừ vào tiền hàng
+  voucherCode            String? // mã giảm giá đã áp (snapshot, không phụ thuộc voucher bị sửa/xoá sau này)
+  shippingDiscount       Int           @default(0) // VND, số tiền mã VẬN CHUYỂN (FREESHIP) đã trừ vào phí ship
+  shippingVoucherCode    String? // mã vận chuyển đã áp (snapshot)
+  customerReportedPaidAt DateTime? // lúc khách bấm "Tôi đã chuyển khoản" (chỉ báo cho Admin; paymentStatus vẫn do Admin xác nhận)
+  total                  Int // VND, = subtotal + shippingFee - discount - shippingDiscount tại thời điểm đặt
+  note                   String?
+  shippingAddress        Json // snapshot địa chỉ giao hàng
+  paymentMethod          PaymentMethod
+  paymentStatus          PaymentStatus @default(PENDING)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
 
   user          User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
+  redemptions   VoucherRedemption[] // tối đa 2: một mã giảm giá + một mã vận chuyển
 
   @@index([userId, createdAt])
   @@index([status])
+}
+
+// Hạng thành viên, suy ra từ tổng chi tiêu (src/lib/customer-tier.ts); chỉ dùng để giới hạn voucher theo hạng.
+enum CustomerTier {
+  MEMBER
+  SILVER
+  GOLD
+  DIAMOND
+}
+
+// Ai được dùng voucher: mọi khách, khách từ một hạng trở lên (minTier), hoặc chỉ khách được gán (VoucherAssignment).
+enum VoucherAudience {
+  ALL
+  TIER
+  USERS
+}
+
+enum VoucherType {
+  CASH // giảm số tiền cố định (value = VND)
+  PERCENT // giảm theo % hàng (value = %, có thể có trần maxDiscount)
+  FREESHIP // trừ vào phí vận chuyển (value = VND tối đa)
+}
+
+// Mã giảm giá do Admin tạo. Áp khi đặt đơn (createOrder). Mỗi khách dùng tối đa 1 lần mỗi mã (VoucherRedemption).
+model Voucher {
+  id             String          @id @default(cuid())
+  code           String          @unique // luôn IN HOA, không dấu cách
+  name           String
+  type           VoucherType
+  value          Int
+  maxDiscount    Int? // trần giảm cho PERCENT
+  minOrder       Int             @default(0) // VND, tính trên phần hàng được áp dụng
+  categoryId     String? // null = toàn bộ sản phẩm; có = chỉ hàng thuộc danh mục này (và danh mục con)
+  firstOrderOnly Boolean         @default(false)
+  usageLimit     Int? // null = không giới hạn
+  usedCount      Int             @default(0)
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  isActive       Boolean         @default(true)
+  audience       VoucherAudience @default(ALL)
+  minTier        CustomerTier? // audience = TIER: chỉ khách từ hạng này trở lên
+  welcomeTier    CustomerTier? // có giá trị: tự gán cho khách khi họ lên tới hạng này (kèm audience = USERS)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  category    Category?           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  redemptions VoucherRedemption[]
+  assignments VoucherAssignment[]
+
+  @@index([isActive, expiresAt])
+}
+
+// Voucher gán riêng cho khách (audience = USERS), do Admin chọn hoặc tự cấp khi khách lên hạng (welcomeTier).
+model VoucherAssignment {
+  voucherId String
+  userId    String
+  auto      Boolean  @default(false) // true = hệ thống tự cấp khi khách lên hạng (welcomeTier); false = Admin chọn tay
+  createdAt DateTime @default(now())
+
+  voucher Voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([voucherId, userId])
+  @@index([userId])
+}
+
+// Một lượt dùng của một mã trên một đơn (một đơn có thể có hai: mã giảm giá + mã vận chuyển). Xoá khi đơn bị huỷ (hoàn lượt).
+// Unique (voucher, user): mỗi khách dùng mỗi mã một lần, chống đua nhau.
+model VoucherRedemption {
+  id        String   @id @default(cuid())
+  voucherId String
+  userId    String
+  orderId   String
+  createdAt DateTime @default(now())
+
+  voucher Voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([voucherId, userId])
+  @@index([orderId])
 }
 
 // Nhật ký mỗi lần đổi trạng thái đơn (kể cả lúc tạo đơn: fromStatus = null) → dựng timeline.
@@ -375,4 +465,96 @@ model OrderItem {
 
   @@index([orderId])
   @@index([variantId])
+}
+
+// Thông tin cửa hàng hiển thị cho khách (trang Liên hệ, Giới thiệu, chân trang). Một dòng duy nhất, id = "default"; Admin sửa ở Cài đặt.
+model StoreProfile {
+  id        String   @id @default("default")
+  hotline   String?
+  email     String?
+  address   String?
+  about     String? // giới thiệu: các đoạn cách nhau bằng dòng trống
+  updatedAt DateTime @updatedAt
+}
+
+// Quy tắc cửa hàng Admin chỉnh ở Cài đặt hệ thống (tồn kho, vận chuyển, hạng thành viên). Một dòng duy nhất, id = "default";
+// chưa có dòng thì dùng giá trị mặc định trong code (lib/shop-settings.ts). Tiền: VND, số nguyên.
+model ShopSettings {
+  id                       String   @id @default("default")
+  lowStockThreshold        Int      @default(10)
+  flatShippingFee          Int      @default(30000)
+  silverMinSpend           Int      @default(3000000)
+  goldMinSpend             Int      @default(10000000)
+  diamondMinSpend          Int      @default(25000000)
+  memberFreeShipThreshold  Int      @default(500000)
+  silverFreeShipThreshold  Int      @default(400000)
+  goldFreeShipThreshold    Int      @default(300000)
+  diamondFreeShipThreshold Int      @default(0)
+  updatedAt                DateTime @updatedAt
+}
+
+// Tài khoản nhận chuyển khoản (VietQR) do Admin cập nhật ở Cài đặt > Thanh toán. Một dòng duy nhất, id = "default"; chưa có thì dùng BANK_* trong .env.
+model PaymentAccount {
+  id          String   @id @default("default")
+  bankName    String
+  bankBin     String // mã BIN ngân hàng (vd MB Bank = 970422)
+  accountNo   String
+  accountName String // IN HOA không dấu
+  updatedAt   DateTime @updatedAt
+}
+
+enum NotificationType {
+  ORDER_STATUS // đơn hàng đổi trạng thái
+  VOUCHER // nhận voucher mới (vd. voucher chào mừng khi lên hạng)
+}
+
+enum AdminNotificationCategory {
+  ORDER // đơn mới, đơn bị huỷ
+  PAYMENT // chờ xác nhận chuyển khoản, VNPay đã thanh toán
+  STOCK // biến thể xuống dưới ngưỡng sắp hết hàng
+}
+
+// Hộp thư sự kiện cho Admin (chuông trang quản trị). MỘT luồng chung cho mọi Admin; trạng thái đọc theo từng Admin nằm ở
+// User.adminNotificationsSeenAt. Tạo trong cùng transaction với sự kiện (đặt đơn, huỷ, thanh toán, trừ kho).
+model AdminNotification {
+  id        String                    @id @default(cuid())
+  category  AdminNotificationCategory
+  title     String
+  body      String?
+  href      String? // đường dẫn nội bộ khi bấm vào
+  createdAt DateTime                  @default(now())
+
+  reads AdminNotificationRead[]
+
+  @@index([createdAt])
+  @@index([category, createdAt])
+}
+
+// Đã đọc TỪNG thông báo, theo từng Admin (bổ sung cho mốc User.adminNotificationsSeenAt). Xoá theo khi thông báo/Admin bị xoá.
+model AdminNotificationRead {
+  notificationId String
+  userId         String
+  createdAt      DateTime @default(now())
+
+  notification AdminNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([notificationId, userId])
+  @@index([userId])
+}
+
+// Thông báo cho khách (chuông trên header). Tạo trong cùng transaction với lần đổi trạng thái đơn; `readAt` null = chưa đọc.
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String?
+  href      String? // đường dẫn nội bộ khi bấm vào thông báo
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

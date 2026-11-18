@@ -21,11 +21,11 @@ export default async function ProfilePage() {
         name={user.name}
         email={user.email}
         phone={user.phone}
-        defaultAddress={def ? [def.street, def.ward, def.district, def.province].join(", ") : null}
+        defaultAddress={def ? [def.street, def.ward, def.province].join(", ") : null}
       />
       <RecentOrders orders={orders} />
       <section aria-labelledby="change-password" className="rounded-3xl border border-border bg-card p-8">
-        <h2 id="change-password" className="text-xl font-bold">
+        <h2 id="change-password" className="text-2xl font-semibold">
           Đổi mật khẩu
         </h2>
         <p className="mt-1 mb-6 text-label text-muted-foreground">Sau khi đổi, các thiết bị khác sẽ bị đăng xuất.</p>

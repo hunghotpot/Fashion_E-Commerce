@@ -3,7 +3,7 @@ import { registerSchema } from "@/lib/validators/auth"
 
 /* Validator cho Admin → Khách hàng. Quy tắc tên/email/SĐT/mật khẩu dùng lại từ đăng ký. */
 
-export const CUSTOMER_FILTERS = ["all", "vip", "member", "locked"] as const
+export const CUSTOMER_FILTERS = ["all", "member", "silver", "gold", "diamond", "locked"] as const
 export type CustomerFilterKey = (typeof CUSTOMER_FILTERS)[number]
 
 export const DEFAULT_CUSTOMER_PAGE_SIZE = 10

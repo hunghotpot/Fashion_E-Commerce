@@ -6,7 +6,7 @@ import { ConfirmDialog } from "@/components/admin/modal/confirm-dialog"
 import { useAdminAction } from "@/components/admin/use-admin-action"
 import { Button } from "@/components/ui/button"
 
-/** Khóa/Mở khóa một khách. `link`: chữ trong bảng (Figma); `button`: nút ở trang chi tiết. Server vẫn là chốt kiểm quyền. */
+/** Khóa/Mở khóa một khách. `link`: chữ trong bảng; `button`: nút ở trang chi tiết. Server vẫn là chốt kiểm quyền. */
 export function CustomerLockButton({
   customerId,
   name,
@@ -37,7 +37,7 @@ export function CustomerLockButton({
           type="button"
           aria-label={`${locked ? "Mở khóa" : "Khóa"} tài khoản ${name}`}
           onClick={() => setOpen(true)}
-          className={`rounded text-label font-bold outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/30 ${locked ? "text-success" : "text-brand"}`}
+          className={`rounded text-label font-semibold outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/30 ${locked ? "text-success" : "text-destructive"}`}
         >
           {label}
         </button>

@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { z } from "zod"
 import { registerAction } from "@/app/actions/auth"
 import { FormField, FormMessage } from "@/components/auth/form-field"
+import { PasswordInput } from "@/components/auth/password-input"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { registerSchema, type RegisterInput } from "@/lib/validators/auth"
@@ -54,10 +55,10 @@ export function RegisterForm({ next }: { next?: string }) {
         error={errors.password?.message}
         hint="Tối thiểu 8 ký tự, gồm chữ và số"
       >
-        {(a11y) => <Input {...a11y} type="password" autoComplete="new-password" {...register("password")} />}
+        {(a11y) => <PasswordInput {...a11y} autoComplete="new-password" {...register("password")} />}
       </FormField>
       <FormField id="confirmPassword" label="Nhập lại mật khẩu" required error={errors.confirmPassword?.message}>
-        {(a11y) => <Input {...a11y} type="password" autoComplete="new-password" {...register("confirmPassword")} />}
+        {(a11y) => <PasswordInput {...a11y} autoComplete="new-password" {...register("confirmPassword")} />}
       </FormField>
       <Button type="submit" variant="dark" size="xl" disabled={isSubmitting} className="mt-2 w-full">
         {isSubmitting ? "Đang tạo tài khoản..." : "Đăng ký"}
@@ -66,7 +67,7 @@ export function RegisterForm({ next }: { next?: string }) {
         Đã có tài khoản?{" "}
         <Link
           href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
-          className="font-bold text-primary hover:underline"
+          className="font-semibold text-primary hover:underline"
         >
           Đăng nhập
         </Link>

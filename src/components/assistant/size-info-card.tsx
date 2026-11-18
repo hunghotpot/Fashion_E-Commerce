@@ -47,9 +47,9 @@ export function SizeInfoCard({
   }
 
   return (
-    <form onSubmit={submit} noValidate aria-label="Nhập số đo" className="space-y-3 rounded-2xl border border-dashed border-border-strong bg-white p-4">
+    <form onSubmit={submit} noValidate aria-label="Nhập số đo" className="space-y-3 rounded-2xl border border-dashed border-border-strong bg-card p-4">
       <div>
-        <p className="text-sm font-bold">Cần thêm số đo</p>
+        <p className="text-sm font-semibold">Cần thêm số đo</p>
         <p className="text-xs text-muted-foreground">Để tư vấn chính xác hơn, cho mình biết:</p>
       </div>
 
@@ -59,7 +59,7 @@ export function SizeInfoCard({
           const id = `measure-${f}`
           return (
             <div key={f} className="space-y-1">
-              <label htmlFor={id} className="text-xs font-bold">
+              <label htmlFor={id} className="text-xs font-semibold">
                 {label} ({unit})
               </label>
               <Input

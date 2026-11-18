@@ -1,16 +1,27 @@
-﻿import "server-only"
-import type { PaymentStatus, Prisma } from "@prisma/client"
+import "server-only"
+import { Prisma, type PaymentStatus } from "@prisma/client"
 import {
+  BANK_TRANSFER_WINDOW_HOURS,
   formatOrderCode,
   orderDayKey,
+  PAYMENT_METHOD_SHORT,
   SUPPORTED_PAYMENT_METHODS,
+  transferContent,
   type CheckoutPaymentMethod,
 } from "@/lib/order"
-import { calculateShippingFee } from "@/lib/shipping"
+import { formatVnd } from "@/lib/format"
+import type { OrderSource } from "@/lib/order-source"
+import { getShippingFee } from "@/server/services/customer-spend"
+import { syncTierPerksForOrder } from "@/server/services/voucher.service"
 import type { AddressInput } from "@/lib/validators/auth"
 import { orderListFilterSchema, type OrderListFilterInput } from "@/lib/validators/order-list"
 import { db } from "@/server/db"
 import { addItemsClamped } from "@/server/services/cart.service"
+import { notifyAdmins, notifyLowStock } from "@/server/services/admin-notification.service"
+import { notifyOrderStatus } from "@/server/services/notification.service"
+import { sendOrderEmail } from "@/server/services/order-email.service"
+import { loadOrderLines } from "@/server/services/order-lines"
+import { consumeVoucher, releaseVoucher, resolveVoucherSet, VoucherError } from "@/server/services/voucher.service"
 import type {
   OrderAddressSnapshot,
   OrderDetail,
@@ -61,6 +72,13 @@ export interface CreateOrderInput {
   newAddress?: AddressInput
   paymentMethod: CheckoutPaymentMethod
   note?: string
+  /**
+   * Mã voucher (tuỳ chọn), tối đa hai: một mã giảm giá + một mã vận chuyển. Server kiểm tra và tự tính số tiền giảm;
+   * lỗi → VoucherError, đơn không được tạo.
+   */
+  voucherCodes?: string[]
+  /** Nguồn hàng (xem src/lib/order-source.ts). Bỏ trống = toàn bộ giỏ. */
+  source?: OrderSource
 }
 
 export type Db = Prisma.TransactionClient
@@ -87,21 +105,9 @@ export async function recordStatusChange(
       note: note ?? null,
     },
   })
+  // Báo cho chủ đơn (chuông thông báo). from === to là dòng ghi chú không đổi trạng thái (vd Admin xác nhận đã nhận tiền): không báo.
+  if (from !== to) await notifyOrderStatus(tx, orderId, to)
 }
-
-const lineSelect = {
-  variantId: true,
-  quantity: true,
-  variant: {
-    select: {
-      sku: true,
-      size: true,
-      color: true,
-      price: true,
-      product: { select: { name: true, isActive: true } },
-    },
-  },
-} satisfies Prisma.CartItemSelect
 
 const detailSelect = {
   id: true,
@@ -112,6 +118,10 @@ const detailSelect = {
   createdAt: true,
   subtotal: true,
   shippingFee: true,
+  discount: true,
+  voucherCode: true,
+  shippingDiscount: true,
+  shippingVoucherCode: true,
   total: true,
   note: true,
   shippingAddress: true,
@@ -133,7 +143,6 @@ async function resolveAddress(tx: Db, userId: string, input: CreateOrderInput): 
     phone: a.phone,
     street: a.street,
     ward: a.ward,
-    district: a.district,
     province: a.province,
   })
 
@@ -167,9 +176,15 @@ export async function createOrder(user: { id: string }, input: CreateOrderInput)
   }
 
   const orderId = await db.$transaction(async (tx) => {
-    const cart = await tx.cart.findFirst({ where: { userId: user.id }, select: { id: true } })
-    const lines = cart ? await tx.cartItem.findMany({ where: { cartId: cart.id }, select: lineSelect }) : []
-    if (!cart || lines.length === 0) throw new OrderError("EMPTY_CART", "Giỏ hàng của bạn đang trống")
+    // Nguồn hàng: cả giỏ, các dòng giỏ được chọn, hoặc mua ngay một biến thể (không đụng giỏ).
+    const loaded = await loadOrderLines(tx, user.id, input.source)
+    if (!loaded.ok) {
+      throw new OrderError(
+        "EMPTY_CART",
+        loaded.reason === "VARIANT_NOT_FOUND" ? "Sản phẩm không tồn tại hoặc đã ngừng bán" : input.source?.items ? "Các sản phẩm đã chọn không còn trong giỏ hàng" : "Giỏ hàng của bạn đang trống"
+      )
+    }
+    const { cartId, lines } = loaded
 
     const shippingAddress = await resolveAddress(tx, user.id, input)
 
@@ -184,6 +199,19 @@ export async function createOrder(user: { id: string }, input: CreateOrderInput)
           data: { stock: { decrement: l.quantity } },
         })
         deducted = res.count === 1
+        if (deducted) {
+          // Vừa tụt xuống ngưỡng "sắp hết hàng" (trước đó còn trên ngưỡng) thì báo Admin một lần.
+          const after = await tx.productVariant.findUnique({ where: { id: l.variantId }, select: { stock: true } })
+          if (after) {
+            await notifyLowStock(tx, {
+              productName: l.variant.product.name,
+              size: l.variant.size,
+              color: l.variant.color,
+              before: after.stock + l.quantity,
+              after: after.stock,
+            })
+          }
+        }
       }
       if (!deducted) {
         const fresh = l.variant.product.isActive
@@ -208,7 +236,20 @@ export async function createOrder(user: { id: string }, input: CreateOrderInput)
     }
 
     const subtotal = lines.reduce((sum, l) => sum + l.variant.price * l.quantity, 0)
-    const shippingFee = calculateShippingFee(subtotal)
+    const shippingFee = await getShippingFee(user.id, subtotal, tx)
+
+    // Voucher: kiểm tra + tính giảm + tăng lượt dùng nguyên tử, cùng transaction nên lỗi nào cũng hoàn tác cả đơn và trừ kho.
+    const vouchers = input.voucherCodes?.length
+      ? await resolveVoucherSet(tx, user.id, input.voucherCodes, {
+          lines: lines.map((l) => ({ categoryId: l.variant.product.categoryId, lineTotal: l.variant.price * l.quantity })),
+          shippingFee,
+          paymentMethod: input.paymentMethod,
+        })
+      : { product: null, shipping: null }
+    const used = [vouchers.product, vouchers.shipping].filter((r): r is NonNullable<typeof r> => r !== null)
+    for (const r of used) await consumeVoucher(tx, r.voucher.id)
+    const discount = vouchers.product?.discount ?? 0
+    const shippingDiscount = vouchers.shipping?.discount ?? 0
 
     const day = orderDayKey(new Date())
     const seq = await tx.orderSequence.upsert({
@@ -218,13 +259,18 @@ export async function createOrder(user: { id: string }, input: CreateOrderInput)
       select: { last: true },
     })
 
+    const orderCode = formatOrderCode(day, seq.last)
     const order = await tx.order.create({
       data: {
-        code: formatOrderCode(day, seq.last),
+        code: orderCode,
         userId: user.id,
         subtotal,
         shippingFee,
-        total: subtotal + shippingFee,
+        discount,
+        voucherCode: vouchers.product?.voucher.code ?? null,
+        shippingDiscount,
+        shippingVoucherCode: vouchers.shipping?.voucher.code ?? null,
+        total: subtotal + shippingFee - discount - shippingDiscount,
         note: input.note ?? null,
         shippingAddress: { ...shippingAddress },
         paymentMethod: input.paymentMethod,
@@ -246,10 +292,41 @@ export async function createOrder(user: { id: string }, input: CreateOrderInput)
       select: { id: true },
     })
 
-    await tx.cartItem.deleteMany({ where: { cartId: cart.id } })
+    for (const r of used) await tx.voucherRedemption.create({ data: { voucherId: r.voucher.id, userId: user.id, orderId: order.id } })
+
+    // Chỉ xoá khỏi giỏ đúng các dòng vừa mua; dòng không chọn ở lại, mua ngay không đụng giỏ.
+    if (cartId) await tx.cartItem.deleteMany({ where: { cartId, variantId: { in: lines.map((l) => l.variantId) } } })
+    // Thông báo "Đặt hàng thành công" cho chuông (cùng transaction nên chỉ có khi đơn thật sự được tạo).
+    await notifyOrderStatus(tx, order.id, "PENDING")
+    // Báo Admin: đơn mới, và nếu là chuyển khoản thì thêm việc "chờ xác nhận tiền" kèm hạn.
+    const buyer = await tx.user.findUnique({ where: { id: user.id }, select: { name: true } })
+    const orderTotal = subtotal + shippingFee - discount - shippingDiscount
+    const adminHref = `/admin/orders/${order.id}`
+    await notifyAdmins(tx, {
+      category: "ORDER",
+      title: `Đơn mới #${orderCode}`,
+      body: `${buyer?.name ?? "Khách"} · ${formatVnd(orderTotal)} · ${PAYMENT_METHOD_SHORT[input.paymentMethod] ?? input.paymentMethod}`,
+      href: adminHref,
+    })
+    if (input.paymentMethod === "BANK_TRANSFER") {
+      await notifyAdmins(tx, {
+        category: "PAYMENT",
+        title: `Chờ xác nhận chuyển khoản #${orderCode}`,
+        body: `${formatVnd(orderTotal)}, nội dung ${transferContent(orderCode)}. Đơn tự huỷ sau ${BANK_TRANSFER_WINDOW_HOURS} giờ nếu chưa xác nhận.`,
+        href: adminHref,
+      })
+    }
     return order.id
+  }).catch((e: unknown): never => {
+    // Hai đơn cùng lúc cùng dùng một mã: ràng buộc unique (voucher, khách) chặn đơn thứ hai.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" && String(e.meta?.target).includes("voucherId")) {
+      throw new VoucherError("ALREADY_USED", "Bạn đã dùng mã giảm giá này rồi")
+    }
+    throw e
   })
 
+  // Sau khi commit: email xác nhận (mặc định tắt). Không chờ và không bao giờ làm hỏng đơn.
+  void sendOrderEmail(orderId, "PENDING")
   const created = await getOrder(user.id, orderId)
   return created!
 }
@@ -273,7 +350,7 @@ export async function cancelOrderCore(
     // Quyền: khi có userId thì chỉ chủ đơn mới tìm thấy đơn (người khác nhận ORDER_NOT_FOUND, không lộ sự tồn tại).
     const order = await tx.order.findFirst({
       where: { id: orderId, ...(scope.userId ? { userId: scope.userId } : {}) },
-      select: { id: true, items: { select: { variantId: true, quantity: true } } },
+      select: { id: true, code: true, items: { select: { variantId: true, quantity: true } } },
     })
     if (!order) throw new OrderError("ORDER_NOT_FOUND", "Không tìm thấy đơn hàng")
 
@@ -297,6 +374,16 @@ export async function cancelOrderCore(
       await tx.order.updateMany({ where: { id: order.id, paymentStatus: "PENDING" }, data: { paymentStatus: "FAILED" } })
     }
     await recordStatusChange(tx, order.id, fromStatus, "CANCELLED", scope.actor, scope.note)
+    await releaseVoucher(tx, order.id) // hoàn lượt dùng voucher (nếu có) để khách dùng lại được
+    // Admin tự huỷ thì không cần báo chính họ; khách huỷ hoặc hệ thống huỷ (quá hạn) thì báo.
+    if (scope.actor.type !== "ADMIN") {
+      await notifyAdmins(tx, {
+        category: "ORDER",
+        title: `Đơn #${order.code} đã bị huỷ`,
+        body: scope.actor.type === "SYSTEM" ? (scope.note ?? "Hệ thống tự huỷ") : `Khách huỷ${scope.note ? `: ${scope.note}` : ""}`,
+        href: `/admin/orders/${order.id}`,
+      })
+    }
 
     for (const item of order.items) {
       if (item.variantId) {
@@ -307,6 +394,7 @@ export async function cancelOrderCore(
       }
     }
   })
+  void sendOrderEmail(orderId, "CANCELLED")
 }
 
 /** Chủ đơn huỷ đơn khi còn PENDING/CONFIRMED: hoàn tồn kho + ghi lịch sử (kèm lý do) — cùng một transaction. */
@@ -344,8 +432,15 @@ export async function changeOrderStatus(
         ? new OrderError("INVALID_STATUS_CHANGE", `Đơn không ở trạng thái ${from} nên không chuyển được sang ${to}`)
         : new OrderError("ORDER_NOT_FOUND", "Không tìm thấy đơn hàng")
     }
-    await recordStatusChange(tx, orderId, from, to, actor, note)
+    // Đơn COD giao thành công = đã thu tiền mặt: tự chuyển thanh toán sang PAID (chỉ khi còn PENDING; chuyển khoản/VNPay có luồng xác nhận riêng).
+    const collected =
+      to === "DELIVERED"
+        ? (await tx.order.updateMany({ where: { id: orderId, paymentMethod: "COD", paymentStatus: "PENDING" }, data: { paymentStatus: "PAID" } })).count === 1
+        : false
+    await recordStatusChange(tx, orderId, from, to, actor, note ?? (collected ? "Đã thu tiền COD khi giao hàng" : undefined))
   })
+  void sendOrderEmail(orderId, to)
+  if (to === "DELIVERED") void syncTierPerksForOrder(orderId) // COD giao xong thành Đã thanh toán: có thể vừa lên hạng
 }
 
 /**
@@ -552,6 +647,10 @@ export async function getOrderDetail(userId: string, orderId: string): Promise<O
     createdAt: row.createdAt,
     subtotal: row.subtotal,
     shippingFee: row.shippingFee,
+    discount: row.discount,
+    voucherCode: row.voucherCode,
+    shippingDiscount: row.shippingDiscount,
+    shippingVoucherCode: row.shippingVoucherCode,
     total: row.total,
     note: row.note,
     shippingAddress: row.shippingAddress as unknown as OrderAddressSnapshot,

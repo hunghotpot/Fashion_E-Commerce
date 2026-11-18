@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { z } from "zod"
 import { loginAction } from "@/app/actions/auth"
 import { FormField, FormMessage } from "@/components/auth/form-field"
+import { PasswordInput } from "@/components/auth/password-input"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { loginSchema, type LoginInput } from "@/lib/validators/auth"
@@ -44,7 +45,7 @@ export function LoginForm({ next }: { next?: string }) {
       </FormField>
       <FormField id="password" label="Mật khẩu" required error={errors.password?.message}>
         {(a11y) => (
-          <Input {...a11y} type="password" autoComplete="current-password" placeholder="••••••••" {...register("password")} />
+          <PasswordInput {...a11y} autoComplete="current-password" placeholder="••••••••" {...register("password")} />
         )}
       </FormField>
       <Button type="submit" variant="dark" size="xl" disabled={isSubmitting} className="mt-2 w-full">
@@ -54,7 +55,7 @@ export function LoginForm({ next }: { next?: string }) {
         Chưa có tài khoản?{" "}
         <Link
           href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"}
-          className="font-bold text-primary hover:underline"
+          className="font-semibold text-primary hover:underline"
         >
           Đăng ký
         </Link>

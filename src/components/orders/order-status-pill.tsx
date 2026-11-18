@@ -1,8 +1,8 @@
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { Badge } from "@/components/ui/badge"
 import type { OrderStatusValue } from "@/types/order"
 
-// Figma: pill có chấm màu. Thẻ đơn hàng gọi SHIPPING là "Đang vận chuyển" (bộ lọc/timeline dùng "Đang giao hàng").
+// Pill có chấm màu. Thẻ đơn hàng gọi SHIPPING là "Đang vận chuyển" (bộ lọc/timeline dùng "Đang giao hàng").
 const PILL: Record<OrderStatusValue, { label: string; variant: "warning" | "info" | "success" | "default" }> = {
   PENDING: { label: "Chờ xác nhận", variant: "warning" },
   CONFIRMED: { label: "Đã xác nhận", variant: "info" },

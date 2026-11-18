@@ -1,7 +1,7 @@
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 
 /*
- * Bảng danh sách Admin (Figma): đầu bảng xám nhạt bo tròn, mỗi hàng là một "thẻ" viền mảnh bo tròn.
+ * Bảng danh sách Admin: đầu bảng xám nhạt bo tròn, mỗi hàng là một "thẻ" viền mảnh bo tròn.
  * Dùng: <ListCard><AdminTable columns={[...]}> <AdminTr><td>..</td></AdminTr> </AdminTable><AdminPagination/></ListCard>
  * Ô dữ liệu viết thẳng <td>: kiểu hàng được áp bằng selector con của AdminTr.
  */
@@ -12,7 +12,7 @@ export interface AdminColumn {
   className?: string
 }
 
-const HEAD = "px-3 py-3 text-left text-xs font-bold tracking-wide whitespace-nowrap text-muted-foreground uppercase"
+const HEAD = "px-3 py-3 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-muted-foreground uppercase"
 
 /** Khung thẻ bo lớn chứa bảng và phân trang. */
 export function ListCard({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -23,7 +23,7 @@ export function ListCard({ children, className }: { children: React.ReactNode; c
 export function ListSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section aria-label={title} className="space-y-4">
-      <h2 className="text-lg font-bold">{title}</h2>
+      <h2 className="text-2xl font-semibold">{title}</h2>
       {children}
     </section>
   )
@@ -80,7 +80,7 @@ export function AdminTr({ className, ...props }: React.ComponentProps<"tr">) {
 export function AdminEmpty({ title = "Không có dữ liệu", hint }: { title?: string; hint?: string }) {
   return (
     <div className="py-14 text-center">
-      <p className="text-label font-bold">{title}</p>
+      <p className="text-label font-semibold">{title}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   )

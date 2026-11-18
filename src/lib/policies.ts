@@ -1,5 +1,5 @@
 import { formatVnd } from "@/lib/format"
-import { PAYMENT_WINDOW_MINUTES } from "@/lib/order"
+import { BANK_TRANSFER_WINDOW_HOURS, PAYMENT_WINDOW_MINUTES } from "@/lib/order"
 import { FLAT_SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping"
 
 /*
@@ -22,7 +22,15 @@ export interface Policy {
   pending?: boolean
 }
 
-export const POLICIES: Policy[] = [
+/** Phí ship hiện hành (Admin chỉnh ở Cài đặt); bỏ trống thì dùng mặc định trong code. */
+export interface ShippingTerms {
+  freeShippingFrom: number
+  flatShippingFee: number
+}
+
+const DEFAULT_TERMS: ShippingTerms = { freeShippingFrom: FREE_SHIPPING_THRESHOLD, flatShippingFee: FLAT_SHIPPING_FEE }
+
+export const buildPolicies = ({ freeShippingFrom, flatShippingFee }: ShippingTerms = DEFAULT_TERMS): Policy[] => [
   {
     slug: "van-chuyen",
     title: "Chính sách vận chuyển",
@@ -31,8 +39,8 @@ export const POLICIES: Policy[] = [
       {
         heading: "Phí vận chuyển",
         body: [
-          `Đơn hàng từ ${formatVnd(FREE_SHIPPING_THRESHOLD)} được miễn phí vận chuyển.`,
-          `Đơn hàng dưới ${formatVnd(FREE_SHIPPING_THRESHOLD)} tính phí vận chuyển đồng giá ${formatVnd(FLAT_SHIPPING_FEE)}.`,
+          `Đơn hàng từ ${formatVnd(freeShippingFrom)} được miễn phí vận chuyển.`,
+          `Đơn hàng dưới ${formatVnd(freeShippingFrom)} tính phí vận chuyển đồng giá ${formatVnd(flatShippingFee)}.`,
         ],
       },
     ],
@@ -51,9 +59,10 @@ export const POLICIES: Policy[] = [
         ],
       },
       {
-        heading: "Hạn thanh toán qua VNPay",
+        heading: "Hạn thanh toán",
         body: [
           `Đơn thanh toán qua VNPay cần được thanh toán trong ${PAYMENT_WINDOW_MINUTES} phút. Quá hạn, đơn tự động bị huỷ và số lượng hàng được hoàn lại kho.`,
+          `Đơn chuyển khoản cần được cửa hàng xác nhận đã nhận tiền trong ${BANK_TRANSFER_WINDOW_HOURS} giờ. Quá hạn, đơn tự động bị huỷ và hàng được hoàn lại kho; bạn có thể đặt lại đơn mới.`,
         ],
       },
     ],
@@ -81,4 +90,7 @@ export const POLICIES: Policy[] = [
   },
 ]
 
-export const getPolicy = (slug: string): Policy | undefined => POLICIES.find((p) => p.slug === slug)
+/** Danh sách theo giá trị mặc định: đủ cho liên kết (slug, tiêu đề). Nội dung có số tiền thì dùng `buildPolicies(terms)`. */
+export const POLICIES: Policy[] = buildPolicies()
+
+export const getPolicy = (slug: string, terms?: ShippingTerms): Policy | undefined => buildPolicies(terms).find((p) => p.slug === slug)

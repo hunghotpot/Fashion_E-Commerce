@@ -53,7 +53,7 @@ export default async function ProductDetailPage({ params }: Props) {
           <Crumb href="/">Trang chủ</Crumb>
           {category.parent && <Crumb href={`/categories/${category.parent.slug}`}>{category.parent.name}</Crumb>}
           <Crumb href={`/categories/${category.slug}`}>{category.name}</Crumb>
-          <li aria-current="page" className="line-clamp-1 font-bold text-foreground">
+          <li aria-current="page" className="line-clamp-1 font-semibold text-foreground">
             {product.name}
           </li>
         </ol>
@@ -86,7 +86,7 @@ async function RelatedProducts({ product }: { product: ProductDetail }) {
 function Crumb({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-1.5">
-      <Link href={href} className="hover:text-foreground">
+      <Link href={href} className="inline-block py-2 hover:text-foreground">
         {children}
       </Link>
       <span aria-hidden>/</span>

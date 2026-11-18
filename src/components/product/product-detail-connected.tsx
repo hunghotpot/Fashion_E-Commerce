@@ -4,9 +4,10 @@ import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ProductDetailMain } from "@/components/product/product-detail-main"
 import { useAddToCart } from "@/hooks/use-cart"
+import { sourceToQuery } from "@/lib/order-source"
 import type { ProductDetail } from "@/types/catalog"
 
-// Nối ProductDetailMain với giỏ hàng. "Mua ngay" = thêm vào giỏ rồi sang /cart (chưa có trang thanh toán).
+// Nối ProductDetailMain với giỏ hàng. "Mua ngay" = sang thẳng trang thanh toán chỉ với sản phẩm này, KHÔNG thêm vào giỏ và không đụng giỏ.
 // Khách chưa đăng nhập: chuyển sang /login rồi quay lại đúng trang sản phẩm.
 export function ProductDetailConnected({
   product,
@@ -55,7 +56,14 @@ export function ProductDetailConnected({
       product={product}
       careTips={careTips}
       onAddToCart={(item) => add(item)}
-      onBuyNow={(item) => add(item, () => router.push("/cart"))}
+      onBuyNow={(item) => {
+        if (!authenticated) {
+          toast.info("Vui lòng đăng nhập để mua hàng")
+          router.push(`/login?next=${encodeURIComponent(pathname)}`)
+          return
+        }
+        router.push(`/checkout${sourceToQuery({ buyNow: item })}`)
+      }}
     />
   )
 }

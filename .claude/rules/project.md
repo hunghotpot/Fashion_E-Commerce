@@ -16,7 +16,7 @@ PostgreSQL (image pgvector/pgvector:pg16), Redis (sau), Zod, TanStack Query, Zus
 - Trừ tồn kho phải nằm trong prisma.$transaction.
 
 ## Quy ước
-- Giao diện bám sát Figma (dùng Figma MCP), không tự ý đổi layout/màu.
+- Giao diện theo hệ thống thiết kế "Ấm áp tinh tế" (từ 2026-11-17, thay cho Figma gốc). Mọi màu, font, bo góc, khoảng cách lấy từ token trong `src/app/globals.css`, không viết mã màu hay cỡ chữ cứng. Đổi giao diện chỉ qua token và component dùng chung, không đổi logic, service, API, route. Giữ tỷ lệ tương phản ≥4.5:1, focus nhìn thấy được và `prefers-reduced-motion`.
 - Component dùng shadcn/ui làm nền, tùy biến theo design token.
 - Commit nhỏ, message dạng conventional commits.
 - Sau mỗi tính năng: chạy `npm run lint && npm run typecheck`.

@@ -9,7 +9,7 @@ import {
   Loader2Icon,
 } from "lucide-react"
 
-// NOTE: Figma has no toast frame. Styled from card + status-pill tokens.
+// NOTE: Styled from card + status-pill tokens.
 // Light-only (design has no dark mode), so next-themes is intentionally not used.
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
@@ -35,7 +35,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: "cn-toast !shadow-float !text-label",
-          title: "!font-bold",
+          title: "!font-semibold",
           description: "!text-xs !text-muted-foreground",
         },
       }}

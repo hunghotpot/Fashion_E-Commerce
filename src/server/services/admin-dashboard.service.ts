@@ -1,8 +1,9 @@
 import "server-only"
 import type { OrderStatus, PaymentMethod, PaymentStatus, Prisma } from "@prisma/client"
 import { adminDateRanges, addVnDays, percentChange, vnDateKey, WEEKDAY_LABELS } from "@/lib/admin-dates"
-import { LOW_STOCK_THRESHOLD, stockStatus, type StockStatus } from "@/lib/inventory"
+import { stockStatus, type StockStatus } from "@/lib/inventory"
 import { db } from "@/server/db"
+import { getShopSettings } from "./shop-settings.service"
 
 /*
  * Thống kê trang Tổng quan của Admin. Service không kiểm quyền (Server Action/route gọi requireAdmin() trước).
@@ -87,6 +88,7 @@ const countOrdersBetween = (from: Date, to: Date) => db.order.count({ where: { c
 
 export async function getDashboardStats(now = new Date()): Promise<DashboardStats> {
   const r = adminDateRanges(now)
+  const { lowStockThreshold } = await getShopSettings()
   const activeVariant: Prisma.ProductVariantWhereInput = { product: { isActive: true } }
 
   const weekDays = WEEKDAY_LABELS.map((label, i) => {
@@ -117,10 +119,10 @@ export async function getDashboardStats(now = new Date()): Promise<DashboardStat
     db.order.count({ where: { status: "PENDING" } }),
     db.user.count({ where: { role: "CUSTOMER" } }),
     db.user.count({ where: { role: "CUSTOMER", createdAt: { gte: r.monthStart } } }),
-    db.productVariant.count({ where: { ...activeVariant, stock: { gt: 0, lte: LOW_STOCK_THRESHOLD } } }),
+    db.productVariant.count({ where: { ...activeVariant, stock: { gt: 0, lte: lowStockThreshold } } }),
     db.productVariant.count({ where: { ...activeVariant, stock: { lte: 0 } } }),
     db.productVariant.findMany({
-      where: { ...activeVariant, stock: { lte: LOW_STOCK_THRESHOLD } },
+      where: { ...activeVariant, stock: { lte: lowStockThreshold } },
       orderBy: [{ stock: "asc" }, { sku: "asc" }],
       take: LOW_STOCK_LIST_SIZE,
       select: { id: true, sku: true, size: true, color: true, stock: true, product: { select: { id: true, name: true } } },
@@ -155,7 +157,7 @@ export async function getDashboardStats(now = new Date()): Promise<DashboardStat
     stock: {
       lowCount,
       outOfStockCount: outCount,
-      threshold: LOW_STOCK_THRESHOLD,
+      threshold: lowStockThreshold,
       lowItems: lowVariants.map((v) => ({
         variantId: v.id,
         productId: v.product.id,
@@ -164,7 +166,7 @@ export async function getDashboardStats(now = new Date()): Promise<DashboardStat
         size: v.size,
         color: v.color,
         stock: v.stock,
-        status: stockStatus(v.stock),
+        status: stockStatus(v.stock, lowStockThreshold),
       })),
     },
     weeklyRevenue: weekDays.map((d, i) => ({ date: vnDateKey(d.start), label: d.label, revenue: weekRevenue[i] })),

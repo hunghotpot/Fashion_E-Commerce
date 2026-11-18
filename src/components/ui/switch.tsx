@@ -1,9 +1,9 @@
 "use client"
 
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 
-// Figma (modal "Hiển thị ngay"): brand-coloured track when on, white thumb.
+// Brand-coloured track when on, white thumb.
 function Switch({
   className,
   size = "default",

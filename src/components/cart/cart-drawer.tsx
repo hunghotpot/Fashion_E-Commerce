@@ -36,12 +36,15 @@ export function CartDrawer() {
             <Link href="/products" onClick={close} className={buttonVariants({ variant: "dark", size: "md" })}>
               Tiếp tục mua sắm
             </Link>
+            <Link href="/cart" onClick={close} className="text-label font-semibold underline-offset-4 hover:underline">
+              Đến trang giỏ hàng
+            </Link>
           </div>
         ) : (
           <>
             <ul className="flex-1 space-y-4 overflow-y-auto px-6 pb-4">
               {cart.items.map((line) => (
-                <li key={line.variantId} className="flex gap-3 rounded-2xl border border-border bg-white p-3">
+                <li key={line.variantId} className="flex gap-3 rounded-2xl border border-border bg-card p-3">
                   <Link
                     href={`/products/${line.slug}`}
                     onClick={close}
@@ -50,20 +53,20 @@ export function CartDrawer() {
                     {line.image && <Image src={line.image.url} alt={line.image.alt} fill sizes="80px" className="object-cover" />}
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <Link href={`/products/${line.slug}`} onClick={close} className="line-clamp-2 text-label font-bold hover:text-primary">
+                    <Link href={`/products/${line.slug}`} onClick={close} className="line-clamp-2 text-label font-semibold hover:text-primary">
                       {line.name}
                     </Link>
                     <p className="text-xs text-muted-foreground">
                       Size: <b className="text-foreground">{line.size}</b> | Màu: <b className="text-foreground">{line.color}</b>
                     </p>
                     {line.warnings.map((w) => (
-                      <p key={w.code} className="text-xs font-bold text-warning">
+                      <p key={w.code} className="text-xs font-semibold text-warning">
                         {w.message}
                       </p>
                     ))}
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-1">
                       <CartStepper line={line} />
-                      <span className="text-label font-bold whitespace-nowrap text-primary">{formatVnd(line.lineTotal)}</span>
+                      <span className="text-label font-semibold whitespace-nowrap text-primary">{formatVnd(line.lineTotal)}</span>
                     </div>
                   </div>
                   <Button
@@ -82,7 +85,7 @@ export function CartDrawer() {
             <div className="space-y-4 border-t border-border p-6">
               <div className="flex items-center justify-between">
                 <span className="text-label text-muted-foreground">Tạm tính</span>
-                <span className="text-lg font-bold text-primary">{formatVnd(cart.subtotal)}</span>
+                <span className="text-lg font-semibold text-primary">{formatVnd(cart.subtotal)}</span>
               </div>
               <Link href="/cart" onClick={close} className={`${buttonVariants({ variant: "dark", size: "lg" })} w-full`}>
                 Xem giỏ hàng

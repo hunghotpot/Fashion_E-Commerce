@@ -172,6 +172,7 @@ function productWhere(f: ProductFilters, scope: Scope, omit?: Dim, includeUnisex
     and.push(includeUnisex && g !== "UNISEX" ? { gender: { in: [g, "UNISEX"] } } : { gender: g })
   }
   if (f.season.length) and.push({ season: { hasSome: f.season } })
+  if (f.featured) and.push({ isFeatured: true })
   if (omit !== "material" && f.material.length) and.push({ material: { in: f.material } })
   if (omit !== "style" && f.style.length) and.push({ style: { in: f.style } })
   if (omit !== "occasion" && f.occasion.length) and.push({ occasion: { hasSome: f.occasion } })

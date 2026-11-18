@@ -1,14 +1,14 @@
 "use client"
 
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-// Bề rộng theo Figma (÷1.49): khách hàng ~600, voucher ~680, sản phẩm ~760.
+// Bề rộng: khách hàng ~600, voucher ~680, sản phẩm ~760.
 const SIZE = { md: "sm:max-w-xl", lg: "sm:max-w-2xl", xl: "sm:max-w-3xl" } as const
 
 /*
- * Modal Admin (Figma): tiêu đề + mô tả, đường kẻ, thân form, chân có "Hủy bỏ" và nút chính.
+ * Modal Admin: tiêu đề + mô tả, đường kẻ, thân form, chân có "Hủy bỏ" và nút chính.
  * Thân modal thường là <form id="..."> và `footer` là <ModalActions formId="..."/> để nút Lưu nằm ngoài vùng cuộn mà vẫn submit đúng form.
  */
 export function AdminModal({

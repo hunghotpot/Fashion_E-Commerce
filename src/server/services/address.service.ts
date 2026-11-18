@@ -18,7 +18,6 @@ const select = {
   phone: true,
   street: true,
   ward: true,
-  district: true,
   province: true,
   isDefault: true,
 } as const

@@ -341,7 +341,7 @@ describe("PII và bí mật không lọt vào kết quả tool, chỉ dẫn hệ
       note: "gọi trước khi giao, email a@b.co",
       email: "a@b.co",
       passwordHash: "$2b$hash",
-      shippingAddress: { fullName: "Nguyễn Văn A", phone: "0987654321", street: "1 Lê Lợi", ward: "P1", district: "Q1", province: "HCM" },
+      shippingAddress: { fullName: "Nguyễn Văn A", phone: "0987654321", street: "1 Lê Lợi", ward: "P1", province: "HCM" },
       items: [{ productName: "Áo thun", size: "M", color: "Trắng", unitPrice: 199000, quantity: 2, variantId: "v1", image: null, slug: "ao", inStock: true }],
       history: [{ fromStatus: null, toStatus: "PENDING", actorType: "CUSTOMER", actorName: "Nguyễn Văn A", note: "liên hệ 0912345678", createdAt: new Date("2026-11-10T03:00:00Z") }],
     })

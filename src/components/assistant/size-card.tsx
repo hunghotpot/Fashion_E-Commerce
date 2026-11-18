@@ -20,22 +20,22 @@ export function SizeCard({
   const stock = data.stock
 
   return (
-    <article aria-label="Gợi ý size" className="space-y-3 rounded-2xl border border-border bg-white p-4">
+    <article aria-label="Gợi ý size" className="space-y-3 rounded-2xl border border-border bg-card p-4">
       {data.productName && <p className="text-xs text-muted-foreground">{data.productName}</p>}
 
       <div className="flex items-start gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-nav font-bold text-primary-foreground">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-nav font-semibold text-primary-foreground">
           {data.recommendedSize}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-2 text-sm font-bold">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
             Gợi ý: size {data.recommendedSize}
             {between && <Badge variant="warning">Giữa hai size</Badge>}
           </p>
           {between && <p className="text-xs text-muted-foreground">Cũng có thể cân nhắc size {data.alternativeSize}</p>}
         </div>
         {between && (
-          <span aria-label={`Size thay thế ${data.alternativeSize}`} className="grid size-11 shrink-0 place-items-center rounded-xl bg-secondary text-nav font-bold text-muted-foreground">
+          <span aria-label={`Size thay thế ${data.alternativeSize}`} className="grid size-11 shrink-0 place-items-center rounded-xl bg-secondary text-nav font-semibold text-muted-foreground">
             {data.alternativeSize}
           </span>
         )}

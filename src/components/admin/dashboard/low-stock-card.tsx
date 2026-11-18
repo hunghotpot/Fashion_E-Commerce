@@ -7,10 +7,10 @@ export function LowStockCard({ items }: { items: DashboardStats["stock"]["lowIte
   return (
     <section aria-labelledby="low-stock-title" className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-6">
       <div className="flex items-start justify-between gap-3">
-        <h2 id="low-stock-title" className="text-base font-bold">
+        <h2 id="low-stock-title" className="font-sans text-base font-semibold">
           Cảnh báo tồn kho thấp
         </h2>
-        <Link href="/admin/products" className="text-xs font-bold text-brand hover:underline">
+        <Link href="/admin/products" className="inline-flex min-h-6 items-center text-xs font-semibold text-brand hover:underline pointer-coarse:min-h-11">
           Nhập kho ngay
         </Link>
       </div>
@@ -22,14 +22,14 @@ export function LowStockCard({ items }: { items: DashboardStats["stock"]["lowIte
           {items.map((it) => (
             <li key={it.variantId} className="flex items-center justify-between gap-3 rounded-2xl border border-border p-4">
               <div className="min-w-0 space-y-1">
-                <p className="truncate text-label font-bold">
+                <p className="truncate text-label font-semibold">
                   {it.productName} ({it.color})
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Size {it.size} • Còn: <span className="font-bold text-brand">{it.stock} cái</span>
+                  Size {it.size} • Còn: <span className="font-semibold text-destructive">{it.stock} cái</span>
                 </p>
               </div>
-              <Badge variant={it.status === "OUT" ? "dark" : "brand"} className="h-7 px-3.5">
+              <Badge variant={it.status === "OUT" ? "dark" : "warning"} className="h-7 px-3.5">
                 {STOCK_STATUS_LABEL[it.status]}
               </Badge>
             </li>

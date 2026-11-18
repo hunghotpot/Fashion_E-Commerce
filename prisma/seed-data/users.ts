@@ -22,8 +22,7 @@ export const SEED_CUSTOMER_ADDRESS = {
   fullName: "Nguyễn Minh Anh",
   phone: "0987654321",
   street: "123 Nguyễn Huệ",
-  ward: "Phường Bến Nghé",
-  district: "Quận 1",
-  province: "TP. Hồ Chí Minh",
+  ward: "Phường Sài Gòn",
+  province: "Thành phố Hồ Chí Minh",
   isDefault: true,
 };

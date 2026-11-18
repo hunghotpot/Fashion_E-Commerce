@@ -32,7 +32,7 @@ function Row({
 }) {
   return (
     <AdminTr>
-      <td className={child ? "pl-10" : "font-bold"}>
+      <td className={child ? "pl-10" : "font-semibold"}>
         {child && <span className="mr-2 text-subtle-foreground" aria-hidden>└</span>}
         <span className={child ? "font-medium" : undefined}>{node.name}</span>
       </td>
@@ -40,7 +40,7 @@ function Row({
       <td className="max-w-64 truncate text-muted-foreground" title={node.description ?? undefined}>
         {node.description || "—"}
       </td>
-      <td className="text-right font-bold">{node.productCount}</td>
+      <td className="text-right font-semibold">{node.productCount}</td>
       <td>
         <div className="flex justify-end gap-2">
           <Button type="button" size="sm" variant="secondary" onClick={onEdit}>

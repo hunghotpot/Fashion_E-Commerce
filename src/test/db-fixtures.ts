@@ -47,7 +47,7 @@ export function createFixtures() {
         passwordHash: "x",
         name: "Người Mua Thử",
         addresses: {
-          create: { fullName: "Người Mua Thử", phone: "0901234567", street: "1 Test", ward: "P1", district: "Q1", province: "HCM", isDefault: true },
+          create: { fullName: "Người Mua Thử", phone: "0901234567", street: "1 Test", ward: "P1", province: "HCM", isDefault: true },
         },
         cart: { create: { items: { create: lines } } },
       },

@@ -44,7 +44,7 @@ export function SizeChartSection({ categoryId, categoryName, rows }: { categoryI
         [...groups].map(([brand, list]) => (
           <ListCard key={brand ?? "__common"}>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-base font-bold">{brand ? `Thương hiệu: ${brand}` : "Bảng chung"}</h3>
+              <h3 className="text-base font-semibold">{brand ? `Thương hiệu: ${brand}` : "Bảng chung"}</h3>
               <div className="flex gap-2">
                 <Button type="button" size="sm" variant="secondary" onClick={() => setEditor({ brand, rows: list, fixedBrand: true })}>
                   Sửa bảng
@@ -58,7 +58,7 @@ export function SizeChartSection({ categoryId, categoryName, rows }: { categoryI
               <AdminTable columns={COLUMNS} minWidth={640} caption={brand ? `Bảng size ${brand}` : "Bảng size chung"}>
                 {list.map((r) => (
                   <AdminTr key={r.id}>
-                    <td className="font-bold">{r.size}</td>
+                    <td className="font-semibold">{r.size}</td>
                     <td>{r.chest ?? "—"}</td>
                     <td>{r.waist}</td>
                     <td>{r.hip}</td>

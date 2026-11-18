@@ -63,6 +63,10 @@ export const productFilterSchema = z
     inStock: z
       .preprocess((v) => (["1", "true", true].includes(first(v) as string | boolean) ? true : undefined), z.literal(true).optional())
       .catch(undefined),
+    /** Chỉ sản phẩm được Admin gắn "nổi bật" (liên kết "Xem tất cả" của mục nổi bật ở trang chủ). */
+    featured: z
+      .preprocess((v) => (["1", "true", true].includes(first(v) as string | boolean) ? true : undefined), z.literal(true).optional())
+      .catch(undefined),
     sort: z.preprocess(first, z.enum(PRODUCT_SORTS)).catch("newest"),
     page: z.preprocess(first, z.coerce.number().int().min(1).max(10_000)).catch(1),
     pageSize: z
@@ -110,6 +114,7 @@ export function serializeProductFilters(
   if (f.minPrice !== undefined) sp.set("minPrice", String(f.minPrice))
   if (f.maxPrice !== undefined) sp.set("maxPrice", String(f.maxPrice))
   if (f.inStock) sp.set("inStock", "1")
+  if (f.featured) sp.set("featured", "1")
   if (f.sort !== "newest") sp.set("sort", f.sort)
   if (f.page > 1) sp.set("page", String(f.page))
   if (f.pageSize !== DEFAULT_PAGE_SIZE) sp.set("pageSize", String(f.pageSize))

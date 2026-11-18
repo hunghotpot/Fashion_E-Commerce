@@ -1,33 +1,38 @@
 ﻿import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { FadeImage } from "@/components/ui/fade-image"
 import { formatVnd, GENDER_LABEL } from "@/lib/format"
 import type { ProductCardData } from "@/types/catalog"
 
 const MAX_DOTS = 5
 const IMAGE_SIZES = "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
 
-// Figma: ảnh nền secondary bo 8px, tên 15px bold, mô tả 13px, giá 16px bold.
-// Tag "NEW" nằm góc trên trái và giá chuyển sang màu brand.
+// Ảnh dọc 4:5, tên và giá cùng một hàng, nhãn góc nhỏ (NEW / HẾT HÀNG), giá chuyển sang màu brand khi là hàng mới.
+// "Xem nhanh" chỉ là gợi ý khi rê chuột/Tab (cả thẻ vốn là một liên kết tới trang sản phẩm), nên không phải nút riêng.
 export function ProductCard({
   product,
   isNew = false,
+  priority = false,
 }: {
   product: ProductCardData
   isNew?: boolean
+  /** Ảnh đầu trang (nhiều khả năng là LCP): tải ngay, không lazy. */
+  priority?: boolean
 }) {
   return (
     <Link
       href={`/products/${product.slug}`}
       className="group flex flex-col gap-3 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
     >
-      <div className="relative aspect-6/5 overflow-hidden rounded-lg bg-secondary">
+      <div className="relative aspect-4/5 overflow-hidden rounded-xl bg-secondary">
         {product.image ? (
-          <Image
+          <FadeImage
             src={product.image.url}
             alt={product.image.alt}
             fill
             sizes={IMAGE_SIZES}
+            priority={priority}
             className={`object-cover transition-all duration-300 ${
               product.hoverImage ? "group-hover:opacity-0" : "group-hover:scale-105"
             }`}
@@ -57,10 +62,23 @@ export function ProductCard({
             </Badge>
           )
         )}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-3 bottom-3 hidden h-10 translate-y-3 place-items-center rounded-none bg-card/95 text-xs font-semibold tracking-[0.06em] uppercase opacity-0 shadow-card transition duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 motion-reduce:transition-none [@media(hover:hover)]:grid"
+        >
+          Xem nhanh
+        </span>
       </div>
 
       <div className="space-y-1">
-        <h3 className="line-clamp-1 text-nav leading-snug font-bold">{product.name}</h3>
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="line-clamp-2 text-nav leading-snug font-semibold">{product.name}</h3>
+          <p
+            className={`shrink-0 text-nav font-semibold whitespace-nowrap tabular-nums ${isNew ? "text-primary" : "text-foreground"}`}
+          >
+            {formatVnd(product.price)}
+          </p>
+        </div>
         <p className="line-clamp-1 text-label text-subtle-foreground">
           {product.categoryName} • {GENDER_LABEL[product.gender]}
         </p>
@@ -70,7 +88,7 @@ export function ProductCard({
               <li
                 key={c.name}
                 title={c.name}
-                className="size-3.5 rounded-full border border-border-strong"
+                className="size-4 rounded-full border border-border-strong"
                 style={{ backgroundColor: c.hex }}
               >
                 <span className="sr-only">{c.name}</span>
@@ -81,11 +99,7 @@ export function ProductCard({
             )}
           </ul>
         )}
-        <p className={`text-base font-bold ${isNew ? "text-primary" : "text-foreground"}`}>
-          {formatVnd(product.price)}
-        </p>
       </div>
     </Link>
   )
 }
-

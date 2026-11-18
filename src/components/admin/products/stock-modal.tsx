@@ -6,7 +6,7 @@ import { AdminModal, ModalActions } from "@/components/admin/modal/admin-modal"
 import { useAdminAction } from "@/components/admin/use-admin-action"
 import { DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { toast } from "sonner"
 
 export interface StockVariant {
@@ -77,7 +77,7 @@ function StockForm({ variants, onClose }: { variants: StockVariant[]; onClose: (
               aria-pressed={mode === m.value}
               onClick={() => setMode(m.value)}
               className={cn(
-                "h-10 rounded-xl border px-4 text-label font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
+                "h-10 rounded-xl border px-4 text-label font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
                 mode === m.value ? "border-ink bg-ink text-white" : "border-border bg-card text-sidebar-foreground hover:bg-secondary"
               )}
             >
@@ -91,7 +91,7 @@ function StockForm({ variants, onClose }: { variants: StockVariant[]; onClose: (
           {variants.map((v) => (
             <li key={v.variantId} className="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-3 rounded-xl border border-border px-4 py-2.5">
               <label htmlFor={`stock-${v.variantId}`} className="min-w-0 text-label">
-                <span className="block truncate font-bold">
+                <span className="block truncate font-semibold">
                   {v.color} / {v.size}
                 </span>
                 <span className="text-xs text-muted-foreground">Hiện có: {v.stock}</span>

@@ -2,6 +2,7 @@
 import { Logo } from "@/components/layout/logo"
 import { POLICIES } from "@/lib/policies"
 import { SITE_NAME } from "@/lib/site"
+import type { StoreProfile } from "@/server/services/store-profile.service"
 import type { NavCategory } from "@/types/catalog"
 
 const ACCOUNT_LINKS = [
@@ -10,19 +11,33 @@ const ACCOUNT_LINKS = [
   { href: "/account/addresses", label: "Sổ địa chỉ" },
 ]
 
-const linkClass = "text-label text-subtle-foreground transition-colors hover:text-white"
-const headingClass = "mb-3 text-sm font-bold uppercase"
+const SUPPORT_LINKS = [
+  { href: "/cau-hoi-thuong-gap", label: "Câu hỏi thường gặp" },
+  { href: "/gioi-thieu", label: "Giới thiệu" },
+  { href: "/lien-he", label: "Liên hệ" },
+]
 
-// Figma chưa có footer → dựng theo ngôn ngữ hero (ink, chữ trắng/slate). Bốn cột: giới thiệu, danh mục, tài khoản, chính sách.
-export function SiteFooter({ categories }: { categories: NavCategory[] }) {
+const linkClass = "text-label text-white/70 transition-colors hover:text-white"
+const headingClass = "mb-4 font-sans text-xs font-semibold tracking-[0.16em] uppercase"
+
+// Footer nền ink, chữ trắng (chữ phụ white/70 ≥ 4.5:1). Bốn cột: giới thiệu, danh mục, tài khoản, chính sách.
+export function SiteFooter({ categories, profile }: { categories: NavCategory[]; profile?: StoreProfile }) {
+  const contacts = [profile?.hotline, profile?.email, profile?.address].filter((v): v is string => !!v)
   return (
     <footer className="mt-16 bg-ink text-white">
       <div className="mx-auto grid w-full max-w-page grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 md:grid-cols-[1.4fr_1fr_1fr_1.2fr] md:gap-8 md:px-8">
         <div className="col-span-2 space-y-4 md:col-span-1">
           <Logo inverted />
-          <p className="max-w-sm text-sm text-subtle-foreground">
+          <p className="max-w-sm text-sm text-white/70">
             Khám phá phong cách thời trang hiện đại và năng động, từ đồ mặc hằng ngày đến phụ kiện.
           </p>
+          {contacts.length > 0 && (
+            <ul aria-label="Thông tin liên hệ" className="space-y-1 text-label text-white/70">
+              {contacts.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <nav aria-label="Danh mục ở chân trang">
@@ -51,22 +66,37 @@ export function SiteFooter({ categories }: { categories: NavCategory[] }) {
           </ul>
         </nav>
 
-        <nav aria-label="Chính sách">
-          <h2 className={headingClass}>Chính sách</h2>
-          <ul className="space-y-2">
-            {POLICIES.map((p) => (
-              <li key={p.slug}>
-                <Link href={`/chinh-sach/${p.slug}`} className={linkClass}>
-                  {p.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <div className="space-y-8">
+          <nav aria-label="Chính sách">
+            <h2 className={headingClass}>Chính sách</h2>
+            <ul className="space-y-2">
+              {POLICIES.map((p) => (
+                <li key={p.slug}>
+                  <Link href={`/chinh-sach/${p.slug}`} className={linkClass}>
+                    {p.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <nav aria-label="Hỗ trợ">
+            <h2 className={headingClass}>Hỗ trợ</h2>
+            <ul className="space-y-2">
+              {SUPPORT_LINKS.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className={linkClass}>
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
       </div>
 
       <div className="border-t border-white/10">
-        <p className="mx-auto w-full max-w-page px-4 py-5 text-xs text-subtle-foreground md:px-8">
+        <p className="mx-auto w-full max-w-page px-4 pt-5 pb-20 text-xs text-white/70 sm:pb-5 md:px-8">
           © {new Date().getFullYear()} {SITE_NAME}. Bảo lưu mọi quyền.
         </p>
       </div>

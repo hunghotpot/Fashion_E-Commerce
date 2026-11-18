@@ -8,6 +8,7 @@ import {
   changePasswordSchema,
   updateProfileSchema,
 } from "@/lib/validators/auth"
+import { validateAddressUnits } from "@/server/address/units"
 import { setAuthCookies, getCurrentUser } from "@/server/auth/session"
 import {
   AddressNotFoundError,
@@ -71,6 +72,8 @@ async function withAddress(fn: (userId: string) => Promise<void>, success: strin
 export async function createAddressAction(input: unknown): Promise<ActionResult> {
   const parsed = addressSchema.safeParse(input)
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrorsFrom(parsed.error) }
+  const badUnits = validateAddressUnits(parsed.data)
+  if (badUnits) return { ok: false, fieldErrors: badUnits }
   return withAddress(async (userId) => void (await createAddress(userId, parsed.data)), "Đã thêm địa chỉ")
 }
 
@@ -79,6 +82,8 @@ export async function updateAddressAction(id: string, input: unknown): Promise<A
   const parsed = addressSchema.safeParse(input)
   if (!parsedId.success) return { ok: false, message: "Địa chỉ không hợp lệ" }
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrorsFrom(parsed.error) }
+  const badUnits = validateAddressUnits(parsed.data)
+  if (badUnits) return { ok: false, fieldErrors: badUnits }
   return withAddress(
     async (userId) => void (await updateAddress(userId, parsedId.data, parsed.data)),
     "Đã cập nhật địa chỉ"

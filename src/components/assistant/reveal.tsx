@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 
 /**
  * Thẻ (sản phẩm, size, bộ đồ, xác nhận) hiện SAU tin nhắn: nở chiều cao từ 0, mờ dần và trượt xuống nhẹ, để người xem thấy thẻ

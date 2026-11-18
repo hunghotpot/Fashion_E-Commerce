@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto"
 import { NextResponse, type NextRequest } from "next/server"
-import { expireUnpaidVnpayOrders } from "@/server/services/payment.service"
+import { deleteOldAdminNotifications } from "@/server/services/admin-notification.service"
+import { expireUnpaidOrders } from "@/server/services/payment.service"
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET
@@ -10,8 +11,11 @@ function authorized(req: NextRequest): boolean {
   return given.length === expected.length && timingSafeEqual(given, expected)
 }
 
-// Huỷ đơn VNPAY quá hạn thanh toán + hoàn tồn kho. Gọi định kỳ (cron/scheduler): GET kèm "Authorization: Bearer <CRON_SECRET>".
+// Huỷ đơn quá hạn thanh toán (VNPay 15 phút, chuyển khoản 24 giờ) + hoàn tồn kho, rồi dọn thông báo Admin quá hạn lưu.
+// Gọi định kỳ (cron/scheduler): GET kèm "Authorization: Bearer <CRON_SECRET>".
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  return NextResponse.json(await expireUnpaidVnpayOrders())
+  const { cancelled } = await expireUnpaidOrders()
+  const { deleted } = await deleteOldAdminNotifications()
+  return NextResponse.json({ cancelled, notificationsDeleted: deleted })
 }

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { PlusIcon } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { saveProductAction } from "@/app/actions/admin-products"
 import { AdminModal, ModalActions } from "@/components/admin/modal/admin-modal"
 import { FormField } from "@/components/admin/modal/form-field"
@@ -65,7 +65,7 @@ function Chips({
             disabled={disabled}
             onClick={() => onChange(on ? value.filter((v) => v !== o) : [...value, o])}
             className={cn(
-              "h-8 rounded-full border px-3 text-xs font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:opacity-50",
+              "h-8 rounded-none border px-3 text-xs font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:opacity-50",
               on ? "border-ink bg-ink text-white" : "border-border bg-card text-sidebar-foreground hover:bg-secondary"
             )}
           >
@@ -111,7 +111,7 @@ function ProductForm({
       }}
     >
       {failure && (
-        <p role="alert" className="rounded-xl bg-brand-soft px-4 py-3 text-label font-bold text-destructive">
+        <p role="alert" className="rounded-xl bg-destructive-soft px-4 py-3 text-label font-semibold text-destructive">
           {failure}
         </p>
       )}
@@ -171,7 +171,7 @@ function ProductForm({
             value={s.basePrice}
             inputMode="numeric"
             placeholder="vd: 299000"
-            className="font-bold text-brand"
+            className="font-semibold text-brand"
             aria-invalid={errors.basePrice ? true : undefined}
             onChange={(e) => set("basePrice", e.target.value.replace(/[^\d]/g, ""))}
           />
@@ -183,7 +183,7 @@ function ProductForm({
       </FormField>
 
       <div className="space-y-2">
-        <p className="text-sm font-bold">Phân loại Kích cỡ (Size) &amp; Tồn kho{editing ? "" : " ban đầu"}</p>
+        <p className="text-sm font-semibold">Phân loại Kích cỡ (Size) &amp; Tồn kho{editing ? "" : " ban đầu"}</p>
         <VariantEditor
           groups={s.groups}
           onChange={(groups) => set("groups", groups)}
@@ -198,7 +198,7 @@ function ProductForm({
           <Textarea id="pf-desc" value={s.description} maxLength={5000} rows={4} aria-invalid={errors.description ? true : undefined} onChange={(e) => set("description", e.target.value)} />
         </FormField>
         <FormField label="Tags tìm kiếm" htmlFor="pf-tags" error={errors.tags} hint="Phân tách bằng dấu phẩy, vd: #thethao, áo thun">
-          <Textarea id="pf-tags" value={s.tags} rows={4} className="font-bold text-brand" aria-invalid={errors.tags ? true : undefined} onChange={(e) => set("tags", e.target.value)} />
+          <Textarea id="pf-tags" value={s.tags} rows={4} className="font-semibold text-brand" aria-invalid={errors.tags ? true : undefined} onChange={(e) => set("tags", e.target.value)} />
         </FormField>
       </div>
 
@@ -247,7 +247,7 @@ function ProductForm({
       </FormField>
 
       <label className="flex items-center justify-between gap-4 rounded-2xl bg-secondary px-4 py-4">
-        <span className="flex items-center gap-3 text-label font-bold">
+        <span className="flex items-center gap-3 text-label font-semibold">
           <span aria-hidden className={cn("size-3 rounded-full", s.isActive ? "bg-success" : "bg-border-strong")} />
           Hiển thị ngay trên Trang Chủ &amp; Danh Mục Sản Phẩm
         </span>

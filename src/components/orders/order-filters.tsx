@@ -1,13 +1,13 @@
 import Link from "next/link"
 import { SearchIcon } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { ORDER_STATUS_LABEL } from "@/lib/order-timeline"
 import { ORDER_STATUSES, serializeOrderListFilters, type OrderListFilters } from "@/lib/validators/order-list"
 import type { OrderListResult } from "@/types/order"
 
 const BASE = "/account/orders"
 
-// Figma "OrderFilters": các nút trạng thái kèm số đơn + ô tìm theo mã đơn / tên sản phẩm. Toàn bộ là <a>/<form> GET
+// Bộ lọc đơn: các nút trạng thái kèm số đơn + ô tìm theo mã đơn / tên sản phẩm. Toàn bộ là <a>/<form> GET
 // nên bộ lọc nằm trong URL (chia sẻ được, back/forward hoạt động) và chạy cả khi chưa có JS.
 export function OrderFilters({ filters, counts }: { filters: OrderListFilters; counts: OrderListResult["counts"] }) {
   const href = (status?: (typeof ORDER_STATUSES)[number]) => {
@@ -25,9 +25,10 @@ export function OrderFilters({ filters, counts }: { filters: OrderListFilters; c
             <Link
               key={t.label}
               href={href(t.value)}
+              scroll={false}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "inline-flex h-11 items-center rounded-xl border px-5 text-label font-bold transition-colors",
+                "inline-flex h-11 items-center rounded-xl border px-5 text-label font-semibold transition-colors",
                 active ? "border-ink bg-ink text-white" : "border-border bg-secondary/50 text-muted-foreground hover:border-border-strong hover:text-foreground"
               )}
             >

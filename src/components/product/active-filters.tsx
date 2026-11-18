@@ -15,13 +15,13 @@ export function ActiveFilters() {
           type="button"
           onClick={c.remove}
           aria-label={`Bỏ lọc ${c.label}`}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-bold transition-colors hover:bg-border"
+          className="inline-flex h-8 items-center gap-1.5 rounded-none bg-secondary px-3 text-xs font-semibold transition-colors hover:bg-border"
         >
           {c.label}
           <XIcon className="size-3" />
         </button>
       ))}
-      <button type="button" onClick={clearAll} className="px-2 text-xs font-bold text-primary hover:underline">
+      <button type="button" onClick={clearAll} className="px-2 text-xs font-semibold text-primary hover:underline">
         Xoá tất cả
       </button>
     </div>

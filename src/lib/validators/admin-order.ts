@@ -21,6 +21,10 @@ export const adminOrderListFilterSchema = z.object({
   status: lenientEnum(ORDER_STATUSES),
   paymentStatus: lenientEnum(ADMIN_PAYMENT_STATUSES),
   paymentMethod: lenientEnum(ADMIN_PAYMENT_METHODS),
+  /** `?awaiting=transfer`: đơn chuyển khoản chưa huỷ và chưa xác nhận đã nhận tiền (ghi đè status/paymentStatus/paymentMethod). */
+  awaiting: z
+    .preprocess((v) => first(v), z.enum(["transfer"]).optional())
+    .catch(undefined),
   /** Tìm theo mã đơn, tên khách hoặc số điện thoại. */
   q: z
     .preprocess((v) => (typeof first(v) === "string" ? (first(v) as string).trim() : undefined), z.string().max(100).optional())

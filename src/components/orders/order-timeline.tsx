@@ -1,9 +1,9 @@
 import { CheckIcon, XIcon } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { formatDayMonthTime } from "@/lib/format"
 import type { TimelineStep } from "@/lib/order-timeline"
 
-// Figma "StatusTimeline": các chấm nối bằng đường kẻ — bước đã qua tô màu brand, bước hiện tại có viền, bước chưa tới màu xám.
+// Timeline trạng thái: các chấm nối bằng đường kẻ — bước đã qua tô màu brand, bước hiện tại có viền, bước chưa tới màu xám.
 export function OrderTimeline({ steps }: { steps: TimelineStep[] }) {
   return (
     <ol
@@ -28,8 +28,8 @@ export function OrderTimeline({ steps }: { steps: TimelineStep[] }) {
               className={cn(
                 "relative z-10 grid size-7 place-items-center rounded-full",
                 s.state === "done" && "bg-primary text-white",
-                s.state === "current" && "bg-white ring-2 ring-primary",
-                s.state === "upcoming" && "border-2 border-border-strong bg-white",
+                s.state === "current" && "bg-card ring-2 ring-primary",
+                s.state === "upcoming" && "border-2 border-border-strong bg-card",
                 s.state === "cancelled" && "bg-muted-foreground text-white"
               )}
             >
@@ -42,7 +42,7 @@ export function OrderTimeline({ steps }: { steps: TimelineStep[] }) {
             </span>
             <p
               className={cn(
-                "mt-2 text-label font-bold",
+                "mt-2 text-label font-semibold",
                 s.state === "current" ? "text-primary" : reached ? "text-foreground" : "text-subtle-foreground"
               )}
             >

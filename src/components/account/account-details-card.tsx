@@ -5,8 +5,8 @@ import Link from "next/link"
 import { ProfileForm } from "@/components/account/profile-form"
 import { Button } from "@/components/ui/button"
 
-// Figma "Chi tiết tài khoản": xem dạng ô chỉ đọc, bấm "Chỉnh sửa" để sửa tại chỗ.
-// Ngày sinh / giới tính có trong Figma nhưng DB chưa lưu → chưa hiển thị.
+// Chi tiết tài khoản: xem dạng ô chỉ đọc, bấm "Chỉnh sửa" để sửa tại chỗ.
+// Ngày sinh / giới tính: DB chưa lưu → chưa hiển thị.
 export function AccountDetailsCard({
   name,
   email,
@@ -23,7 +23,7 @@ export function AccountDetailsCard({
   return (
     <section aria-labelledby="account-details" className="rounded-3xl border border-border bg-card p-8">
       <div className="mb-8 flex items-center justify-between gap-4">
-        <h2 id="account-details" className="text-xl font-bold">
+        <h2 id="account-details" className="text-2xl font-semibold">
           Chi tiết tài khoản
         </h2>
         {!editing && (
@@ -54,7 +54,7 @@ export function AccountDetailsCard({
               empty={
                 <>
                   Chưa có địa chỉ mặc định.{" "}
-                  <Link href="/account/addresses" className="font-bold text-primary hover:underline">
+                  <Link href="/account/addresses" className="font-semibold text-primary hover:underline">
                     Thêm địa chỉ
                   </Link>
                 </>
@@ -70,8 +70,8 @@ export function AccountDetailsCard({
 function Field({ label, value, empty = "Chưa cập nhật" }: { label: string; value: string | null; empty?: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      <dt className="text-xs font-bold">{label}</dt>
-      <dd className="flex min-h-[68px] items-center rounded-xl border border-border bg-white px-6 py-4 text-label">
+      <dt className="text-xs font-semibold">{label}</dt>
+      <dd className="flex min-h-[68px] items-center rounded-xl border border-border bg-card px-6 py-4 text-label">
         {value ?? <span className="text-muted-foreground">{empty}</span>}
       </dd>
     </div>

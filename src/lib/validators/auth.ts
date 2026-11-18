@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { isPlausibleStreet } from "@/lib/vn-address"
 
 const PHONE_REGEX = /^(0|\+84)\d{9}$/
 
@@ -78,10 +79,17 @@ export const changePasswordSchema = z
 export const addressSchema = z.object({
   fullName: name,
   phone,
-  street: z.string().trim().min(1, "Vui lòng nhập số nhà, tên đường").max(200, "Tối đa 200 ký tự"),
-  ward: z.string().trim().min(1, "Vui lòng nhập phường/xã").max(100, "Tối đa 100 ký tự"),
-  district: z.string().trim().min(1, "Vui lòng nhập quận/huyện").max(100, "Tối đa 100 ký tự"),
-  province: z.string().trim().min(1, "Vui lòng nhập tỉnh/thành phố").max(100, "Tối đa 100 ký tự"),
+  // Chỉ kiểm HÌNH THỨC (không có dữ liệu đường phố chuẩn): có chữ cái, chỉ chữ/số/khoảng trắng và , . / - ' # ( ).
+  street: z
+    .string()
+    .trim()
+    .min(1, "Vui lòng nhập số nhà, tên đường")
+    .max(200, "Tối đa 200 ký tự")
+    .refine(isPlausibleStreet, "Số nhà, tên đường chưa hợp lệ (cần có chữ, không chỉ gồm dấu câu hay số)"),
+  // Phường/Xã và Tỉnh/Thành chọn từ danh sách chuẩn sau sáp nhập (không còn quận/huyện). Việc phường thuộc đúng tỉnh được
+  // kiểm ở server (validateAddressUnits) vì danh sách phường/xã không đưa vào bundle client.
+  ward: z.string().trim().min(1, "Vui lòng chọn phường/xã").max(100, "Tối đa 100 ký tự"),
+  province: z.string().trim().min(1, "Vui lòng chọn tỉnh/thành phố").max(100, "Tối đa 100 ký tự"),
   isDefault: z.boolean(),
 })
 

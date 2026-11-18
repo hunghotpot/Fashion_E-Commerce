@@ -7,16 +7,20 @@ import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { placeOrderAction } from "@/app/actions/checkout"
+import { AddressUnitFields } from "@/components/account/address-unit-fields"
 import { FormField, FormMessage } from "@/components/auth/form-field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { VoucherBox } from "@/components/cart/voucher-box"
 import { CART_KEY } from "@/hooks/use-cart"
+import { useVoucher } from "@/hooks/use-voucher"
 import type { CartLine } from "@/lib/cart"
 import { formatVnd } from "@/lib/format"
 import { SUPPORTED_PAYMENT_METHODS, type CheckoutPaymentMethod } from "@/lib/order"
+import { sourceToQuery, type OrderSource } from "@/lib/order-source"
 import { checkoutSchema } from "@/lib/validators/checkout"
 import type { AddressDTO } from "@/types/address"
 import type { StockShortage } from "@/types/order"
@@ -24,7 +28,7 @@ import type { StockShortage } from "@/types/order"
 interface FormValues {
   mode: "saved" | "new"
   addressId: string
-  address: { fullName: string; phone: string; street: string; ward: string; district: string; province: string }
+  address: { fullName: string; phone: string; street: string; ward: string; province: string }
   paymentMethod: CheckoutPaymentMethod
   note: string
 }
@@ -35,10 +39,11 @@ const PAYMENTS: { value: CheckoutPaymentMethod; title: string; hint?: string }[]
   { value: "BANK_TRANSFER", title: "Chuyển khoản Ngân hàng / Quét mã VietQR / Ví điện tử" },
 ]
 
-const addressText = (a: AddressDTO) => [a.street, a.ward, a.district, a.province].join(", ")
+const addressText = (a: AddressDTO) => [a.street, a.ward, a.province].join(", ")
 
-// Figma "Đặt Hàng": cột trái = 1. Thông tin giao hàng + 2. Phương thức thanh toán, cột phải = tóm tắt đơn.
+// Trang đặt hàng: cột trái = 1. Thông tin giao hàng + 2. Phương thức thanh toán, cột phải = tóm tắt đơn.
 export function CheckoutForm({
+  source,
   addresses,
   vnpayEnabled,
   items,
@@ -47,6 +52,8 @@ export function CheckoutForm({
   shippingFee,
   total,
 }: {
+  /** Nguồn hàng đang thanh toán (cả giỏ / dòng được chọn / mua ngay). */
+  source?: OrderSource
   addresses: AddressDTO[]
   /** VNPay đã cấu hình (VNP_*) ở server; chưa thì khoá lựa chọn thẻ. */
   vnpayEnabled: boolean
@@ -73,7 +80,7 @@ export function CheckoutForm({
     defaultValues: {
       mode: defaultAddress ? "saved" : "new",
       addressId: defaultAddress?.id ?? "",
-      address: { fullName: "", phone: "", street: "", ward: "", district: "", province: "" },
+      address: { fullName: "", phone: "", street: "", ward: "", province: "" },
       paymentMethod: "COD",
       note: "",
     },
@@ -81,6 +88,10 @@ export function CheckoutForm({
   const mode = watch("mode")
   const addressId = watch("addressId")
   const paymentMethod = watch("paymentMethod")
+  const newProvince = watch("address.province")
+  const newWard = watch("address.ward")
+  const voucher = useVoucher({ paymentMethod, cartKey: `${subtotal}-${itemCount}-${sourceToQuery(source)}`, source })
+  const payable = total - voucher.totalDiscount
 
   async function onSubmit(values: FormValues) {
     setMessage(undefined)
@@ -94,6 +105,9 @@ export function CheckoutForm({
           : { mode: "new" as const, address: { ...values.address, isDefault: false } },
       paymentMethod: values.paymentMethod,
       note: values.note,
+      source,
+      // Chỉ gửi mã khi đang hợp lệ với phương thức thanh toán đã chọn; server vẫn kiểm tra và tự tính số tiền giảm.
+      voucherCodes: voucher.validCodes.length > 0 ? voucher.validCodes : undefined,
     }
     const parsed = checkoutSchema.safeParse(input)
     if (!parsed.success) {
@@ -106,10 +120,19 @@ export function CheckoutForm({
 
     const res = await placeOrderAction(parsed.data)
     if (res.ok) {
+      voucher.clear("PRODUCT") // mã đã dùng cho đơn này
+      voucher.clear("SHIPPING")
       await queryClient.invalidateQueries({ queryKey: CART_KEY }) // giỏ đã được xoá ở server
       // Sang cổng VNPay: điều hướng cả trang (route /api trả redirect ra ngoài), không dùng router của Next.
       if (res.redirectTo.startsWith("/api/")) window.location.assign(res.redirectTo)
       else router.push(res.redirectTo)
+      return
+    }
+    if (res.code === "VOUCHER_INVALID") {
+      voucher.clear("PRODUCT") // mã không còn dùng được: bỏ khỏi đơn để khách đặt lại không kèm mã
+      voucher.clear("SHIPPING")
+      setMessage(`${res.message}. Mã đã được bỏ khỏi đơn, bạn có thể đặt lại.`)
+      toast.error(res.message)
       return
     }
     if (res.code === "OUT_OF_STOCK" || res.code === "EMPTY_CART") {
@@ -132,12 +155,12 @@ export function CheckoutForm({
         {!shortages && <FormMessage>{message}</FormMessage>}
 
         <section aria-labelledby="shipping-heading" className="space-y-6">
-          <h2 id="shipping-heading" className="text-lg font-bold">
+          <h2 id="shipping-heading" className="text-2xl font-semibold">
             1. Thông tin giao hàng
           </h2>
 
           <fieldset className="space-y-3">
-            <legend className="mb-3 text-label font-bold">Địa chỉ nhận hàng</legend>
+            <legend className="mb-3 text-label font-semibold">Địa chỉ nhận hàng</legend>
             {addresses.map((a) => {
               const checked = mode === "saved" && addressId === a.id
               return (
@@ -145,7 +168,7 @@ export function CheckoutForm({
                   key={a.id}
                   className={cn(
                     "flex cursor-pointer items-start gap-4 rounded-xl border bg-surface p-4 transition-colors",
-                    checked ? "border-ink bg-white" : "border-border hover:border-border-strong"
+                    checked ? "border-ink bg-card" : "border-border hover:border-border-strong"
                   )}
                 >
                   <input
@@ -160,7 +183,7 @@ export function CheckoutForm({
                   />
                   <span className="min-w-0 text-label">
                     <b>{a.fullName}</b> • {a.phone}
-                    {a.isDefault && <span className="ml-2 text-xs font-bold text-primary">Mặc định</span>}
+                    {a.isDefault && <span className="ml-2 text-xs font-semibold text-primary">Mặc định</span>}
                     <span className="mt-1 block text-muted-foreground">{addressText(a)}</span>
                   </span>
                 </label>
@@ -168,8 +191,8 @@ export function CheckoutForm({
             })}
             <label
               className={cn(
-                "flex cursor-pointer items-center gap-4 rounded-xl border bg-surface p-4 text-label font-bold transition-colors",
-                mode === "new" ? "border-ink bg-white" : "border-border hover:border-border-strong"
+                "flex cursor-pointer items-center gap-4 rounded-xl border bg-surface p-4 text-label font-semibold transition-colors",
+                mode === "new" ? "border-ink bg-card" : "border-border hover:border-border-strong"
               )}
             >
               <input
@@ -197,19 +220,20 @@ export function CheckoutForm({
                 {(a11y) => <Input {...a11y} type="tel" autoComplete="tel" placeholder="0901234567" {...register("address.phone")} />}
               </FormField>
               <div className="md:col-span-2">
-                <FormField id="co-street" label="Số nhà, tên đường" required error={errors.address?.street?.message}>
-                  {(a11y) => <Input {...a11y} autoComplete="address-line1" {...register("address.street")} />}
-                </FormField>
+                <AddressUnitFields
+                  idPrefix="co"
+                  province={newProvince}
+                  ward={newWard}
+                  onChange={(next) => {
+                    setValue("address.province", next.province, { shouldValidate: true })
+                    setValue("address.ward", next.ward, { shouldValidate: !!next.ward })
+                  }}
+                  errors={{ province: errors.address?.province?.message, ward: errors.address?.ward?.message }}
+                />
               </div>
-              <FormField id="co-ward" label="Phường/Xã" required error={errors.address?.ward?.message}>
-                {(a11y) => <Input {...a11y} {...register("address.ward")} />}
-              </FormField>
-              <FormField id="co-district" label="Quận/Huyện" required error={errors.address?.district?.message}>
-                {(a11y) => <Input {...a11y} {...register("address.district")} />}
-              </FormField>
               <div className="md:col-span-2">
-                <FormField id="co-province" label="Tỉnh/Thành phố" required error={errors.address?.province?.message}>
-                  {(a11y) => <Input {...a11y} {...register("address.province")} />}
+                <FormField id="co-street" label="Số nhà, tên đường" required error={errors.address?.street?.message} hint="Ví dụ: 12 Nguyễn Huệ, hẻm 45/3 Lê Lợi">
+                  {(a11y) => <Input {...a11y} autoComplete="address-line1" {...register("address.street")} />}
                 </FormField>
               </div>
             </div>
@@ -221,7 +245,7 @@ export function CheckoutForm({
         </section>
 
         <section aria-labelledby="payment-heading" className="space-y-4 border-t border-border pt-8">
-          <h2 id="payment-heading" className="text-lg font-bold">
+          <h2 id="payment-heading" className="text-2xl font-semibold">
             2. Phương thức thanh toán
           </h2>
           <div role="radiogroup" aria-label="Phương thức thanh toán" className="space-y-3">
@@ -233,7 +257,7 @@ export function CheckoutForm({
                   key={p.value}
                   className={cn(
                     "flex items-center gap-4 rounded-xl border px-5 py-5 transition-colors",
-                    checked ? "border-ink bg-white" : "border-border bg-surface",
+                    checked ? "border-ink bg-card" : "border-border bg-surface",
                     enabled ? "cursor-pointer hover:border-border-strong" : "cursor-not-allowed opacity-60"
                   )}
                 >
@@ -246,13 +270,13 @@ export function CheckoutForm({
                     onChange={() => setValue("paymentMethod", p.value)}
                     className="size-4 accent-[var(--color-ink)]"
                   />
-                  <span className="flex-1 text-nav font-bold">{p.title}</span>
+                  <span className="flex-1 text-nav font-semibold">{p.title}</span>
                   {p.hint && <span className="text-label text-muted-foreground">{p.hint}</span>}
                   {p.value === "VNPAY" && (
                     <span className="flex items-center gap-2">
-                      {!enabled && <span className="text-xs font-bold text-muted-foreground">Sắp ra mắt</span>}
-                      <span className="rounded-sm bg-ink px-2 py-1 text-[9px] font-bold text-white">VISA</span>
-                      <span className="rounded-sm bg-primary px-2 py-1 text-[9px] font-bold text-white">MC</span>
+                      {!enabled && <span className="text-xs font-semibold text-muted-foreground">Sắp ra mắt</span>}
+                      <span className="rounded-sm bg-ink px-2 py-1 text-[9px] font-semibold text-white">VISA</span>
+                      <span className="rounded-sm bg-primary px-2 py-1 text-[9px] font-semibold text-white">MC</span>
                     </span>
                   )}
                 </label>
@@ -268,17 +292,17 @@ export function CheckoutForm({
       </div>
 
       <aside aria-labelledby="summary-heading" className="h-fit rounded-3xl border border-border bg-card p-8">
-        <h2 id="summary-heading" className="mb-6 text-lg font-bold">
+        <h2 id="summary-heading" className="mb-6 text-2xl font-semibold">
           Đơn hàng của bạn ({itemCount} món)
         </h2>
         <ul className="space-y-5 border-b border-border pb-6">
           {items.map((l) => (
             <li key={l.variantId} className="flex gap-4">
-              <div className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-border bg-white">
+              <div className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-border bg-card">
                 {l.image && <Image src={l.image.url} alt={l.image.alt} fill sizes="80px" className="object-cover" />}
               </div>
               <div className="min-w-0 flex-1 space-y-1">
-                <p className="text-sm font-bold">{l.name}</p>
+                <p className="text-sm font-semibold">{l.name}</p>
                 <p className="text-xs text-muted-foreground">
                   Màu: <b className="text-foreground">{l.color}</b> | Size: <b className="text-foreground">{l.size}</b>
                 </p>
@@ -286,28 +310,42 @@ export function CheckoutForm({
                   Số lượng: <b className="text-foreground">{l.quantity}</b>
                 </p>
               </div>
-              <span className="text-sm font-bold whitespace-nowrap">{formatVnd(l.lineTotal)}</span>
+              <span className="text-sm font-semibold whitespace-nowrap">{formatVnd(l.lineTotal)}</span>
             </li>
           ))}
         </ul>
 
+        <VoucherBox voucher={voucher} id="co-voucher" className="border-b border-border py-6" />
+
         <dl className="space-y-4 border-b border-border py-6 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Tạm tính</dt>
-            <dd className="font-bold">{formatVnd(subtotal)}</dd>
+            <dd className="font-semibold">{formatVnd(subtotal)}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Phí vận chuyển</dt>
-            <dd className={cn("font-bold", shippingFee === 0 && "text-success")}>
+            <dd className={cn("font-semibold", shippingFee === 0 && "text-success")}>
               {shippingFee === 0 ? "Miễn phí" : formatVnd(shippingFee)}
             </dd>
           </div>
+          {voucher.discount > 0 && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Voucher giảm giá {voucher.previews.PRODUCT?.code}</dt>
+              <dd className="font-semibold text-success">-{formatVnd(voucher.discount)}</dd>
+            </div>
+          )}
+          {voucher.shippingDiscount > 0 && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Voucher vận chuyển {voucher.previews.SHIPPING?.code}</dt>
+              <dd className="font-semibold text-success">-{formatVnd(voucher.shippingDiscount)}</dd>
+            </div>
+          )}
         </dl>
 
         <div className="pt-6">
           <div className="flex items-end justify-between gap-4">
-            <span className="text-base font-bold">Tổng cộng</span>
-            <span className="text-[22px] leading-none font-bold text-primary">{formatVnd(total)}</span>
+            <span className="text-base font-semibold">Tổng cộng</span>
+            <span className="text-[22px] leading-none font-semibold text-primary">{formatVnd(payable)}</span>
           </div>
           <p className="mt-2 text-right text-xs text-subtle-foreground">(Đã bao gồm thuế VAT)</p>
           <Button type="submit" size="xl" disabled={isSubmitting} className="mt-8 w-full">
@@ -324,7 +362,7 @@ export function CheckoutForm({
 function StockAlert({ message, shortages }: { message?: string; shortages: StockShortage[] }) {
   return (
     <div role="alert" className="space-y-3 rounded-2xl border border-warning/40 bg-warning-soft p-5 text-label">
-      <p className="font-bold text-warning">{message ?? "Giỏ hàng của bạn có thay đổi"}</p>
+      <p className="font-semibold text-warning">{message ?? "Giỏ hàng của bạn có thay đổi"}</p>
       {shortages.length > 0 && (
         <ul className="list-disc space-y-1 pl-5">
           {shortages.map((s) => (
@@ -336,7 +374,7 @@ function StockAlert({ message, shortages }: { message?: string; shortages: Stock
         </ul>
       )}
       <p className="text-muted-foreground">Đơn hàng chưa được tạo và bạn chưa bị trừ tiền. Vui lòng điều chỉnh giỏ hàng rồi đặt lại.</p>
-      <Link href="/cart" className="inline-flex h-10 items-center rounded-full bg-ink px-6 text-sm font-bold text-white hover:bg-ink/90">
+      <Link href="/cart" className="inline-flex h-10 items-center rounded-none bg-ink px-6 text-sm font-semibold text-white hover:bg-ink/90">
         ← Quay lại giỏ hàng
       </Link>
     </div>

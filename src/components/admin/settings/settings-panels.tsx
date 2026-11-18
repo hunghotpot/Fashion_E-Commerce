@@ -2,22 +2,24 @@ import { AdminTable, AdminTr } from "@/components/admin/list/admin-table"
 import { FormField } from "@/components/admin/modal/form-field"
 import { NotConnectedButton } from "@/components/admin/placeholder/not-connected-button"
 import { StatusPill, type PillTone } from "@/components/admin/status-pill"
+import { PaymentAccountForm } from "@/components/admin/settings/payment-account-form"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { formatVnd } from "@/lib/format"
-import { LOW_STOCK_THRESHOLD } from "@/lib/inventory"
 import { PAYMENT_METHOD_LABEL, SUPPORTED_PAYMENT_METHODS } from "@/lib/order"
-import { FLAT_SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping"
-import { SITE_NAME } from "@/lib/site"
+import { defaultFreeShippingThreshold, type ShopSettings } from "@/lib/shop-settings"
+import type { PaymentAccount } from "@/server/services/payment-account.service"
+import type { StoreProfile } from "@/server/services/store-profile.service"
+import { StoreProfileForm } from "@/components/admin/settings/store-profile-form"
 
 const READONLY = "bg-secondary/60"
-const FROM_CODE = "Giá trị lấy từ hằng số trong code, chưa sửa được ở đây."
+const EDIT_ELSEWHERE = "Chỉnh ở tab Vận chuyển & Kho và tab Hạng thành viên."
 
 function Card({ title, id, action, children }: { title: string; id: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section aria-labelledby={id} className="rounded-3xl border border-border bg-card p-6">
       <div className="mb-5 flex items-center justify-between gap-3">
-        <h2 id={id} className="text-base font-bold">
+        <h2 id={id} className="font-sans text-base font-semibold">
           {title}
         </h2>
         {action}
@@ -31,7 +33,7 @@ function SwitchRow({ id, label, hint }: { id: string; label: string; hint: strin
   return (
     <div className="flex items-center justify-between gap-4 border-t border-border pt-5">
       <div>
-        <label htmlFor={id} className="text-label font-bold">
+        <label htmlFor={id} className="text-label font-semibold">
           {label}
         </label>
         <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
@@ -41,33 +43,18 @@ function SwitchRow({ id, label, hint }: { id: string; label: string; hint: strin
   )
 }
 
-/** Tab 1: Cửa hàng & Brand (Figma 06). */
-export function StorePanel() {
+/** Tab 1: Cửa hàng & Brand. Thông tin cửa hàng lưu được (StoreProfile); phần quy tắc kho/đặt hàng chỉ đọc. */
+export function StorePanel({ profile, settings }: { profile: StoreProfile; settings: ShopSettings }) {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <Card title="Thông tin thương hiệu" id="brand-title">
-        <FormField label="Tên thương hiệu (Logo text)" htmlFor="brand-name" hint={FROM_CODE}>
-          <Input id="brand-name" value={SITE_NAME} readOnly className={READONLY} />
-        </FormField>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Hotline hỗ trợ CSKH" htmlFor="brand-hotline">
-            <Input id="brand-hotline" inputMode="tel" placeholder="Chưa có cấu hình" />
-          </FormField>
-          <FormField label="Email liên hệ" htmlFor="brand-email">
-            <Input id="brand-email" type="email" placeholder="Chưa có cấu hình" />
-          </FormField>
-        </div>
-        <FormField label="Địa chỉ văn phòng / Store chính" htmlFor="brand-address" hint="Thông tin này sẽ hiển thị tại Header & Footer của trang khách hàng khi được kết nối.">
-          <Input id="brand-address" placeholder="Chưa có cấu hình" />
-        </FormField>
-      </Card>
+      <StoreProfileForm profile={profile} />
 
       <Card title="Quy tắc kho & Đặt hàng" id="rules-title">
-        <FormField label="Mức tồn kho tối thiểu để kích hoạt cảnh báo" htmlFor="rule-low-stock" hint={`${FROM_CODE} Biến thể có tồn ≤ mức này được gắn "Sắp hết".`}>
-          <Input id="rule-low-stock" value={`${LOW_STOCK_THRESHOLD} đôi/cái`} readOnly className={READONLY} />
+        <FormField label="Mức tồn kho tối thiểu để kích hoạt cảnh báo" htmlFor="rule-low-stock" hint={`Biến thể có tồn ≤ mức này được gắn "Sắp hết". ${EDIT_ELSEWHERE}`}>
+          <Input id="rule-low-stock" value={`${settings.lowStockThreshold} đôi/cái`} readOnly className={READONLY} />
         </FormField>
-        <FormField label="Ngưỡng đơn hàng miễn phí vận chuyển tự động" htmlFor="rule-free-ship" hint={FROM_CODE}>
-          <Input id="rule-free-ship" value={formatVnd(FREE_SHIPPING_THRESHOLD)} readOnly className={READONLY} />
+        <FormField label="Ngưỡng đơn hàng miễn phí vận chuyển tự động" htmlFor="rule-free-ship" hint={`Ngưỡng của hạng Thành viên; hạng cao hơn thấp hơn. ${EDIT_ELSEWHERE}`}>
+          <Input id="rule-free-ship" value={formatVnd(defaultFreeShippingThreshold(settings))} readOnly className={READONLY} />
         </FormField>
         <SwitchRow id="rule-preorder" label="Cho phép khách đặt hàng trước khi hết kho (Pre-order)" hint="Tính năng chưa được hỗ trợ." />
         <SwitchRow id="rule-boom" label="Tự động cảnh báo tài khoản boom hàng" hint="Tính năng chưa được hỗ trợ." />
@@ -77,16 +64,18 @@ export function StorePanel() {
 }
 
 /** Tab 2: Cổng thanh toán. Chỉ hiển thị phương thức mà code đang hỗ trợ. */
-export function PaymentPanel() {
+export function PaymentPanel({ account }: { account: PaymentAccount }) {
   return (
+    <div className="space-y-4">
+      <PaymentAccountForm initial={{ bankBin: account.bin, accountNo: account.accountNo, accountName: account.accountName }} source={account.source} />
     <Card title="Phương thức thanh toán đang hỗ trợ" id="payment-title">
       <ul className="space-y-3">
         {SUPPORTED_PAYMENT_METHODS.map((m) => (
           <li key={m} className="flex items-center justify-between gap-4 rounded-2xl border border-border px-5 py-4">
             <div>
-              <p className="text-label font-bold">{PAYMENT_METHOD_LABEL[m] ?? m}</p>
+              <p className="text-label font-semibold">{PAYMENT_METHOD_LABEL[m] ?? m}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {m === "VNPAY" ? "Cần cấu hình biến môi trường VNP_* ở máy chủ." : m === "BANK_TRANSFER" ? "Thông tin tài khoản nhận tiền đặt trong cấu hình máy chủ." : "Thu tiền khi giao hàng."}
+                {m === "VNPAY" ? "Cần cấu hình biến môi trường VNP_* ở máy chủ." : m === "BANK_TRANSFER" ? "Tài khoản nhận tiền cấu hình ngay phía trên; khách quét VietQR, Admin xác nhận tay khi tiền về." : "Thu tiền khi giao hàng."}
               </p>
             </div>
             <StatusPill tone="success">Đang hỗ trợ</StatusPill>
@@ -95,26 +84,7 @@ export function PaymentPanel() {
       </ul>
       <p className="text-xs text-muted-foreground">Danh sách lấy từ code (chỉ đọc). Bật/tắt cổng và nhập khoá API sẽ làm sau khi có bảng cấu hình.</p>
     </Card>
-  )
-}
-
-/** Tab 3: Vận chuyển & Kho. */
-export function ShippingPanel() {
-  return (
-    <Card title="Phí vận chuyển & Tồn kho" id="shipping-title">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Phí vận chuyển đồng giá" htmlFor="ship-flat" hint={FROM_CODE}>
-          <Input id="ship-flat" value={formatVnd(FLAT_SHIPPING_FEE)} readOnly className={READONLY} />
-        </FormField>
-        <FormField label="Miễn phí vận chuyển từ" htmlFor="ship-free" hint={FROM_CODE}>
-          <Input id="ship-free" value={formatVnd(FREE_SHIPPING_THRESHOLD)} readOnly className={READONLY} />
-        </FormField>
-        <FormField label="Ngưỡng cảnh báo tồn kho thấp" htmlFor="ship-low" hint={FROM_CODE}>
-          <Input id="ship-low" value={String(LOW_STOCK_THRESHOLD)} readOnly className={READONLY} />
-        </FormField>
-      </div>
-      <p className="text-xs text-muted-foreground">Chưa có tích hợp đơn vị vận chuyển hay bảng phí theo vùng.</p>
-    </Card>
+    </div>
   )
 }
 
@@ -141,7 +111,7 @@ const ADMIN_COLUMNS = [
   { label: "Thao tác", className: "text-right" },
 ]
 
-/** Tab 4: danh sách tài khoản quản trị minh hoạ (Figma đặt khối này dưới tab 1). */
+/** Tab 5: danh sách tài khoản quản trị minh hoạ (chưa có phân quyền thật). */
 export function AdminAccountsPanel() {
   return (
     <Card
@@ -161,9 +131,9 @@ export function AdminAccountsPanel() {
           <AdminTr key={a.initials}>
             <td>
               <div className="flex items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-white">{a.initials}</span>
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-xs font-semibold text-white">{a.initials}</span>
                 <div>
-                  <p className="font-bold">{a.name}</p>
+                  <p className="font-semibold">{a.name}</p>
                   <p className="text-xs text-muted-foreground">Minh hoạ</p>
                 </div>
               </div>

@@ -86,7 +86,7 @@ export function AddCustomerDialog() {
             <Input id="customer-password" name="password" type="password" autoComplete="new-password" aria-invalid={bad("password")} />
           </FormField>
 
-          <p className="flex items-center gap-3 rounded-2xl bg-secondary px-4 py-3.5 text-xs font-bold">
+          <p className="flex items-center gap-3 rounded-2xl bg-secondary px-4 py-3.5 text-xs font-semibold">
             <span className="size-3 shrink-0 rounded-full bg-success" aria-hidden />
             <span>
               Trạng thái mặc định: <span className="text-success">Hoạt động</span> (có thể đổi sang Khóa sau)

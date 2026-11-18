@@ -12,12 +12,12 @@ const slug = `cat-${RUN}`
 let categoryId = ""
 
 const SPECS = [
-  { key: "men-summer", gender: "MEN", season: ["xuân", "hè"] },
+  { key: "men-summer", gender: "MEN", season: ["xuân", "hè"], featured: true },
   { key: "men-winter", gender: "MEN", season: ["đông"] },
   { key: "women-all", gender: "WOMEN", season: ["xuân", "hè", "thu", "đông"] },
   { key: "unisex-summer", gender: "UNISEX", season: ["hè"] },
-  { key: "unisex-autumn", gender: "UNISEX", season: ["thu"] },
-] as const
+  { key: "unisex-autumn", gender: "UNISEX", season: ["thu"], featured: true },
+] as readonly { key: string; gender: "MEN" | "WOMEN" | "UNISEX"; season: readonly string[]; featured?: boolean }[]
 
 const names = async (input: Parameters<typeof listProducts>[0], opts?: Parameters<typeof listProducts>[1]) =>
   (await listProducts({ category: slug, pageSize: 48, ...input }, opts)).items.map((i) => i.name.replace(`${RUN}-`, "")).sort()
@@ -36,6 +36,7 @@ beforeAll(async () => {
         style: "casual",
         gender: s.gender,
         season: [...s.season],
+        isFeatured: s.featured ?? false,
         basePrice: 100_000,
         categoryId,
       },
@@ -155,5 +156,16 @@ describe("onlyIds (kết quả tìm kiếm đã xếp hạng)", () => {
   it("facet chỉ tính trên các sản phẩm trong danh sách", async () => {
     const r = await run(["men-summer", "men-winter"])
     expect(r.facets.genders).toEqual([{ value: "men", count: 2 }])
+  })
+})
+
+describe("lọc featured", () => {
+  it("featured=1: chỉ sản phẩm được gắn nổi bật; không lọc thì đủ cả năm", async () => {
+    expect(await names({ featured: true })).toEqual(["men-summer", "unisex-autumn"])
+    expect(await names({})).toHaveLength(5)
+  })
+
+  it("kết hợp được với bộ lọc khác (featured + mùa thu)", async () => {
+    expect(await names({ featured: true, season: ["thu"] })).toEqual(["unisex-autumn"])
   })
 })

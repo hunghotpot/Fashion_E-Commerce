@@ -8,6 +8,9 @@ import {
   type AdminOrderListFilterInput,
 } from "@/lib/validators/admin-order"
 import { db } from "@/server/db"
+import { notifyPaymentConfirmed } from "@/server/services/notification.service"
+import { sendOrderEmail } from "@/server/services/order-email.service"
+import { syncTierPerksForOrder } from "@/server/services/voucher.service"
 import {
   cancelOrderCore,
   changeOrderStatus,
@@ -20,7 +23,7 @@ import type { OrderAddressSnapshot } from "@/types/order"
 /*
  * Đơn hàng cho Admin. Service KHÔNG kiểm quyền: Server Action/route phải gọi requireAdmin() trước rồi truyền
  * `admin: { userId }` vào đây để ghi lịch sử. Mọi thay đổi trạng thái/tồn kho chạy trong transaction của order.service.
- * Màn Figma "Đang đóng gói" = CONFIRMED.
+ * Nhãn "Đang đóng gói" trên Admin = CONFIRMED.
  */
 
 export type AdminActor = { userId: string }
@@ -36,6 +39,8 @@ export interface AdminOrderListItem {
   status: OrderStatus
   paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus
+  /** Lúc khách báo đã chuyển khoản (null = chưa báo). */
+  customerReportedPaidAt: Date | null
   total: number
   customerName: string
   /** SĐT tài khoản, thiếu thì lấy SĐT trên địa chỉ giao hàng. */
@@ -54,15 +59,30 @@ export interface AdminOrderListResult {
   pageCount: number
 }
 
+/** Đơn chuyển khoản đang chờ Admin xác nhận đã nhận tiền. */
+const AWAITING_TRANSFER_WHERE = {
+  paymentMethod: "BANK_TRANSFER",
+  paymentStatus: "PENDING",
+  status: { not: "CANCELLED" },
+} satisfies Prisma.OrderWhereInput
+
+export function countAwaitingTransfer(): Promise<number> {
+  return db.order.count({ where: AWAITING_TRANSFER_WHERE })
+}
+
 /** Danh sách mọi đơn của mọi khách, mới nhất trước. Tìm theo mã đơn / tên khách / SĐT. */
 export async function listAllOrders(input: AdminOrderListFilterInput = {}): Promise<AdminOrderListResult> {
   const f = adminOrderListFilterSchema.parse(input)
   const q = f.q?.replace(/^#/, "").trim()
 
   const where: Prisma.OrderWhereInput = {
-    ...(f.status ? { status: f.status } : {}),
-    ...(f.paymentStatus ? { paymentStatus: f.paymentStatus } : {}),
-    ...(f.paymentMethod ? { paymentMethod: f.paymentMethod } : {}),
+    ...(f.awaiting === "transfer"
+      ? AWAITING_TRANSFER_WHERE
+      : {
+          ...(f.status ? { status: f.status } : {}),
+          ...(f.paymentStatus ? { paymentStatus: f.paymentStatus } : {}),
+          ...(f.paymentMethod ? { paymentMethod: f.paymentMethod } : {}),
+        }),
     ...(q
       ? {
           OR: [
@@ -79,7 +99,11 @@ export async function listAllOrders(input: AdminOrderListFilterInput = {}): Prom
   const [rows, total] = await Promise.all([
     db.order.findMany({
       where,
-      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      // Lọc "chờ xác nhận chuyển khoản": đơn khách đã báo chuyển khoản lên đầu để Admin đối soát trước.
+      orderBy:
+        f.awaiting === "transfer"
+          ? [{ customerReportedPaidAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }, { id: "asc" }]
+          : [{ createdAt: "desc" }, { id: "asc" }],
       skip: (f.page - 1) * f.pageSize,
       take: f.pageSize,
       select: {
@@ -89,6 +113,7 @@ export async function listAllOrders(input: AdminOrderListFilterInput = {}): Prom
         status: true,
         paymentMethod: true,
         paymentStatus: true,
+        customerReportedPaidAt: true,
         total: true,
         shippingAddress: true,
         user: { select: { name: true, phone: true } },
@@ -107,6 +132,7 @@ export async function listAllOrders(input: AdminOrderListFilterInput = {}): Prom
       status: o.status,
       paymentMethod: o.paymentMethod,
       paymentStatus: o.paymentStatus,
+      customerReportedPaidAt: o.customerReportedPaidAt,
       total: o.total,
       customerName: o.user.name,
       customerPhone: o.user.phone ?? addr?.phone ?? null,
@@ -178,8 +204,13 @@ export interface AdminOrderDetail {
   paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus
   createdAt: Date
+  customerReportedPaidAt: Date | null
   subtotal: number
   shippingFee: number
+  discount: number
+  voucherCode: string | null
+  shippingDiscount: number
+  shippingVoucherCode: string | null
   total: number
   note: string | null
   shippingAddress: OrderAddressSnapshot
@@ -215,8 +246,13 @@ export async function getAdminOrderDetail(orderId: string): Promise<AdminOrderDe
       paymentMethod: true,
       paymentStatus: true,
       createdAt: true,
+      customerReportedPaidAt: true,
       subtotal: true,
       shippingFee: true,
+      discount: true,
+      voucherCode: true,
+      shippingDiscount: true,
+      shippingVoucherCode: true,
       total: true,
       note: true,
       shippingAddress: true,
@@ -247,8 +283,13 @@ export async function getAdminOrderDetail(orderId: string): Promise<AdminOrderDe
     paymentMethod: row.paymentMethod,
     paymentStatus: row.paymentStatus,
     createdAt: row.createdAt,
+    customerReportedPaidAt: row.customerReportedPaidAt,
     subtotal: row.subtotal,
     shippingFee: row.shippingFee,
+    discount: row.discount,
+    voucherCode: row.voucherCode,
+    shippingDiscount: row.shippingDiscount,
+    shippingVoucherCode: row.shippingVoucherCode,
     total: row.total,
     note: row.note,
     shippingAddress: row.shippingAddress as unknown as OrderAddressSnapshot,
@@ -299,7 +340,8 @@ export async function adminChangeOrderStatus(
 /**
  * Admin xác nhận đã nhận tiền chuyển khoản: chỉ đơn BANK_TRANSFER, paymentStatus PENDING, chưa huỷ.
  * Không idempotent: đơn đã PAID ném CANNOT_PAY (thông báo rõ) để Admin biết không có gì thay đổi.
- * Trạng thái đơn giữ nguyên; lịch sử ghi một dòng from = to kèm ghi chú. Không có hạn tự huỷ cho đơn chuyển khoản.
+ * Trạng thái đơn giữ nguyên; lịch sử ghi một dòng from = to kèm ghi chú. Khách được báo qua chuông (và email nếu bật).
+ * Đơn chuyển khoản PENDING chưa trả tiền quá BANK_TRANSFER_WINDOW_HOURS sẽ tự huỷ (expireUnpaidBankTransferOrders).
  */
 export async function markBankTransferPaid(admin: AdminActor, orderId: string): Promise<AdminOrderDetail> {
   const id = adminOrderIdSchema.parse(orderId)
@@ -328,7 +370,11 @@ export async function markBankTransferPaid(admin: AdminActor, orderId: string): 
 
     await tx.order.update({ where: { id }, data: { paymentStatus: "PAID" } })
     await recordStatusChange(tx, id, locked.status, locked.status, adminActor(admin), "Admin xác nhận đã nhận tiền chuyển khoản")
+    // Trạng thái đơn không đổi nên recordStatusChange không báo: báo riêng cho khách (chuông) trong cùng transaction.
+    await notifyPaymentConfirmed(tx, id)
   })
+  void syncTierPerksForOrder(id)
+  void sendOrderEmail(id, "PENDING", "PAYMENT_CONFIRMED") // email (mặc định tắt) sau khi commit, không bao giờ làm hỏng thao tác
 
   return detailOrThrow(id)
 }

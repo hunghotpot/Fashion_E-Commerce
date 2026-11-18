@@ -8,14 +8,14 @@ import type { ProductCardLite } from "@/lib/validators/ai"
 export function ProductsCard({ items }: { items: ProductCardLite[] }) {
   if (items.length === 0) return null
   return (
-    <article aria-label="Sản phẩm gợi ý" className="rounded-2xl border border-border bg-white px-4">
+    <article aria-label="Sản phẩm gợi ý" className="rounded-2xl border border-border bg-card px-4">
       <ul>
         {items.map((item) => (
           <li key={item.slug} className="flex gap-3 border-t border-border py-3 first:border-t-0">
             <Link
               href={`/products/${item.slug}`}
               aria-label={`Xem ${item.name}`}
-              className="relative block h-14 w-11 shrink-0 overflow-hidden rounded-md bg-secondary"
+              className="relative block h-[4.5rem] w-14 shrink-0 overflow-hidden rounded-md bg-secondary"
             >
               {item.image ? (
                 <Image src={item.image.url} alt={item.image.alt} fill sizes="44px" className="object-cover" />
@@ -24,7 +24,7 @@ export function ProductsCard({ items }: { items: ProductCardLite[] }) {
               )}
             </Link>
             <div className="min-w-0 flex-1">
-              <Link href={`/products/${item.slug}`} className="line-clamp-2 text-label font-bold hover:text-primary">
+              <Link href={`/products/${item.slug}`} className="line-clamp-2 text-label font-semibold hover:text-primary">
                 {item.name}
               </Link>
               <p className="text-xs text-muted-foreground">
@@ -32,7 +32,7 @@ export function ProductsCard({ items }: { items: ProductCardLite[] }) {
                 {item.colors.length > 0 && ` · ${item.colors.join(", ")}`}
               </p>
             </div>
-            <span className="text-label font-bold whitespace-nowrap">{formatVnd(item.price)}</span>
+            <span className="text-label font-semibold whitespace-nowrap">{formatVnd(item.price)}</span>
           </li>
         ))}
       </ul>

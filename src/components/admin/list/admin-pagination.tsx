@@ -1,13 +1,13 @@
 import Link from "next/link"
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { buildListHref, pageRange, pageWindow, type RawSearchParams } from "@/lib/admin-list"
 
 const BTN =
-  "grid size-10 place-items-center rounded-xl border text-label font-bold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/30"
+  "grid size-10 pointer-coarse:size-11 place-items-center rounded-xl border text-label font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/30"
 
 /**
- * Chân bảng (Figma): "Hiển thị 1 - 5 trong tổng số N <noun>" bên trái, nút số trang bên phải.
+ * Chân bảng: "Hiển thị 1 - 5 trong tổng số N <noun>" bên trái, nút số trang bên phải.
  * Server component: mỗi nút là một <Link> giữ nguyên các tham số lọc khác, chỉ đổi ?page=.
  */
 export function AdminPagination({

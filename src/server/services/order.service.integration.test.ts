@@ -137,7 +137,7 @@ describe("createOrder", () => {
     const v = await makeVariant(5)
     const { user } = await makeBuyer([{ variantId: v.id, quantity: 1 }])
     const order = await createOrder(user, {
-      newAddress: { fullName: "Nhận Hàng Mới", phone: "0912345678", street: "9 Mới", ward: "P9", district: "Q9", province: "HCM", isDefault: false },
+      newAddress: { fullName: "Nhận Hàng Mới", phone: "0912345678", street: "9 Mới", ward: "P9", province: "HCM", isDefault: false },
       paymentMethod: "COD",
     })
     expect(order.shippingAddress.fullName).toBe("Nhận Hàng Mới")

@@ -53,7 +53,7 @@ export function CancelOrderButton({
             <DialogTitle>Hủy đơn hàng #{code}?</DialogTitle>
             <DialogDescription>Sản phẩm sẽ được hoàn lại kho. Hành động này không thể hoàn tác.</DialogDescription>
           </DialogHeader>
-          <label htmlFor={`cancel-reason-${orderId}`} className="text-label font-bold">
+          <label htmlFor={`cancel-reason-${orderId}`} className="text-label font-semibold">
             Lý do hủy (tuỳ chọn)
           </label>
           <Textarea

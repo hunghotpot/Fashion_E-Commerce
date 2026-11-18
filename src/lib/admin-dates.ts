@@ -1,6 +1,6 @@
 /*
  * Mốc thời gian theo giờ Việt Nam (UTC+7, không có giờ mùa hè) cho thống kê Admin. Hàm thuần.
- * Tuần bắt đầu từ thứ Hai (T2…CN) như biểu đồ trong Figma.
+ * Tuần bắt đầu từ thứ Hai (T2…CN) như biểu đồ Admin.
  */
 
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000

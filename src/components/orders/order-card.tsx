@@ -1,6 +1,6 @@
 ﻿import Image from "next/image"
 import Link from "next/link"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { CancelOrderButton } from "@/components/orders/cancel-order-button"
 import { OrderStatusPill } from "@/components/orders/order-status-pill"
 import { ReorderButton } from "@/components/orders/reorder-button"
@@ -19,9 +19,9 @@ const FOOTER: Record<OrderStatusValue, { text: string; tone: string }> = {
 }
 
 // cn() gộp class xung đột: outline cần border-border thắng border-transparent của nền nút.
-const outlineBtn = cn(buttonVariants({ variant: "outline", size: "md" }), "bg-white px-8")
+const outlineBtn = cn(buttonVariants({ variant: "outline", size: "md" }), "bg-card px-8")
 
-// Figma "OrderCard": thanh tiêu đề (mã đơn • ngày đặt • thanh toán • trạng thái), thân (ảnh, sản phẩm, tổng tiền, nút), dòng thông báo.
+// Thẻ đơn hàng: thanh tiêu đề (mã đơn • ngày đặt • thanh toán • trạng thái), thân (ảnh, sản phẩm, tổng tiền, nút), dòng thông báo.
 export function OrderCard({ order }: { order: OrderListItem }) {
   const cancelled = order.status === "CANCELLED"
   const [first, second] = order.items
@@ -36,7 +36,7 @@ export function OrderCard({ order }: { order: OrderListItem }) {
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-card" aria-label={`Đơn hàng ${order.code}`}>
       <header className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-surface px-6 py-3.5">
-        <Link href={detailHref} className={cn("text-sm font-bold hover:text-primary", cancelled && "text-muted-foreground")}>
+        <Link href={detailHref} className={cn("text-sm font-semibold hover:text-primary", cancelled && "text-muted-foreground")}>
           MÃ ĐƠN: #{order.code}
         </Link>
         <p className={cn("text-xs text-muted-foreground", cancelled && "text-subtle-foreground")}>{meta.join(" • ")}</p>
@@ -56,7 +56,7 @@ export function OrderCard({ order }: { order: OrderListItem }) {
             )}
           </Link>
           <div className={cn("min-w-0 space-y-1", cancelled && "text-muted-foreground")}>
-            <p className="text-nav font-bold">{first?.productName ?? "—"}</p>
+            <p className="text-nav font-semibold">{first?.productName ?? "—"}</p>
             {first && (
               <p className="text-xs text-muted-foreground">
                 Phân loại:{" "}
@@ -80,7 +80,7 @@ export function OrderCard({ order }: { order: OrderListItem }) {
             <p className="text-label text-muted-foreground">
               Tổng số tiền{order.quantity > 1 ? ` (${order.quantity} món)` : ""}:
             </p>
-            <p className={cn("text-xl font-bold", cancelled ? "text-muted-foreground" : order.status === "DELIVERED" ? "text-foreground" : "text-primary")}>
+            <p className={cn("text-xl font-semibold", cancelled ? "text-muted-foreground" : order.status === "DELIVERED" ? "text-foreground" : "text-primary")}>
               {formatVnd(order.total)}
             </p>
           </div>

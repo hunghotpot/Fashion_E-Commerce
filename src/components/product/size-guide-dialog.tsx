@@ -22,7 +22,7 @@ export function SizeChartTable({ rows }: { rows: SizeChartRow[] }) {
       <TableBody>
         {rows.map((r) => (
           <TableRow key={r.size}>
-            <TableCell className="font-bold">{r.size}</TableCell>
+            <TableCell className="font-semibold">{r.size}</TableCell>
             {hasChest && <TableCell>{r.chest ?? "—"}</TableCell>}
             <TableCell>{r.waist}</TableCell>
             <TableCell>{r.hip}</TableCell>

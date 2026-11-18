@@ -11,8 +11,9 @@ import { StatusPill } from "@/components/admin/status-pill"
 import { buttonVariants } from "@/components/ui/button"
 import type { RawSearchParams } from "@/lib/admin-list"
 import { formatDayMonthTime, formatVnd } from "@/lib/format"
-import { PAYMENT_METHOD_SHORT } from "@/lib/order"
-import { getOrderStatusCounts, listAllOrders } from "@/server/services/admin-order.service"
+import { PAYMENT_METHOD_SHORT, paymentDeadline } from "@/lib/order"
+import { countAwaitingTransfer, getOrderStatusCounts, listAllOrders } from "@/server/services/admin-order.service"
+import { expireUnpaidOrders } from "@/server/services/payment.service"
 
 export const metadata: Metadata = { title: "Đơn hàng" }
 
@@ -26,6 +27,9 @@ const COLUMNS = [
   { label: "Xử lý", className: "text-right" },
 ]
 
+/** Giá trị ?status= đặc biệt: đơn chuyển khoản chờ Admin xác nhận đã nhận tiền (không phải trạng thái đơn thật). */
+const TRANSFER_FILTER = "TRANSFER"
+
 const FILTERS = [
   { value: "PENDING", label: "Chờ xác nhận" },
   { value: "CONFIRMED", label: "Đang đóng gói" },
@@ -36,7 +40,14 @@ const FILTERS = [
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   const sp = await searchParams
-  const [counts, list] = await Promise.all([getOrderStatusCounts(), listAllOrders(sp)])
+  await expireUnpaidOrders() // dọn đơn quá hạn thanh toán trước khi hiển thị
+  const awaiting = (Array.isArray(sp.status) ? sp.status[0] : sp.status) === TRANSFER_FILTER
+  const [counts, list, awaitingCount] = await Promise.all([
+    getOrderStatusCounts(),
+    listAllOrders({ ...sp, awaiting: awaiting ? "transfer" : undefined } as Parameters<typeof listAllOrders>[0]),
+    countAwaitingTransfer(),
+  ])
+  const filters = [...FILTERS, { value: TRANSFER_FILTER, label: `Chờ xác nhận chuyển khoản${awaitingCount > 0 ? ` (${awaitingCount})` : ""}` }]
 
   return (
     <>
@@ -44,11 +55,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
         <StatCard label="Chờ xác nhận" value={String(counts.PENDING)} unit="đơn mới" chip="Cần duyệt" chipTone="warning" />
         <StatCard label="Đang vận chuyển" value={String(counts.SHIPPING)} unit="đơn" chip="Đang giao" chipTone="info" />
         <StatCard label="Đã hoàn thành trong tháng" value={String(counts.deliveredThisMonth)} unit="đơn" chip="Tháng này" chipTone="success" />
-        <StatCard label="Đã hủy" value={String(counts.CANCELLED)} unit="đơn" chip="Tổng cộng" chipTone="brand" />
+        <StatCard label="Đã hủy" value={String(counts.CANCELLED)} unit="đơn" chip="Tổng cộng" chipTone="danger" />
       </StatGrid>
 
       <ListSection title="Danh Sách Đơn Hàng">
-        <ListToolbar placeholder="Tìm mã đơn, tên khách, SĐT..." filters={FILTERS} />
+        <ListToolbar placeholder="Tìm mã đơn, tên khách, SĐT..." filters={filters} />
         <ListCard>
           {list.items.length === 0 ? (
             <AdminEmpty title="Không có đơn hàng nào." hint="Thử đổi từ khóa hoặc bộ lọc trạng thái." />
@@ -57,30 +68,40 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
               {list.items.map((o) => (
                 <AdminTr key={o.id}>
                   <td className="whitespace-nowrap">
-                    <Link href={`/admin/orders/${o.id}`} className="font-bold hover:underline">
+                    <Link href={`/admin/orders/${o.id}`} className="inline-flex min-h-6 items-center pointer-coarse:min-h-11 font-semibold hover:underline">
                       #{o.code}
                     </Link>
                     <span className="block text-xs text-muted-foreground">{formatDayMonthTime(o.createdAt)}</span>
                   </td>
                   <td>
-                    <span className="block font-bold">{o.customerName}</span>
+                    <span className="block font-semibold">{o.customerName}</span>
                     {o.customerPhone && <span className="block text-xs text-muted-foreground">{o.customerPhone}</span>}
                   </td>
                   <td>
-                    <span className="block font-bold">{o.firstProductName}</span>
+                    <span className="block font-semibold">{o.firstProductName}</span>
                     <span className="block text-xs text-muted-foreground">
                       {o.otherLines > 0 ? `+ ${o.otherLines} món khác` : `Số lượng: ${o.quantity}`}
                     </span>
                   </td>
                   <td>
-                    <span className="block text-xs font-bold">{PAYMENT_METHOD_SHORT[o.paymentMethod] ?? o.paymentMethod}</span>
+                    <span className="block text-xs font-semibold">{PAYMENT_METHOD_SHORT[o.paymentMethod] ?? o.paymentMethod}</span>
                     <span className="mt-1 block">
                       <StatusPill tone={ORDER_PAYMENT_STATUS_TONE[o.paymentStatus] ?? "neutral"}>
                         {ORDER_PAYMENT_STATUS_LABEL[o.paymentStatus] ?? o.paymentStatus}
                       </StatusPill>
                     </span>
+                    {o.paymentMethod === "BANK_TRANSFER" && o.paymentStatus === "PENDING" && o.status !== "CANCELLED" && (
+                      <span className="mt-1 block text-xs text-warning">
+                        Hạn xác nhận {formatDayMonthTime(paymentDeadline("BANK_TRANSFER", o.createdAt)!)}
+                      </span>
+                    )}
+                    {o.customerReportedPaidAt && o.paymentStatus === "PENDING" && o.status !== "CANCELLED" && (
+                      <span className="mt-1 block text-xs font-semibold text-success">
+                        Khách báo đã chuyển lúc {formatDayMonthTime(o.customerReportedPaidAt)}
+                      </span>
+                    )}
                   </td>
-                  <td className="font-bold whitespace-nowrap text-brand">{formatVnd(o.total)}</td>
+                  <td className="font-semibold whitespace-nowrap text-brand">{formatVnd(o.total)}</td>
                   <td>
                     <StatusPill tone={ADMIN_ORDER_STATUS_TONE[o.status]}>{ADMIN_ORDER_STATUS_LABEL[o.status]}</StatusPill>
                   </td>

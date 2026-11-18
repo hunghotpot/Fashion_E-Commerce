@@ -1,21 +1,30 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { ProductListing } from "@/components/product/product-listing"
+import { listingTitle } from "@/lib/listing-title"
 import { parseProductFilters } from "@/lib/validators/product-filter"
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const { q } = parseProductFilters(await searchParams)
-  return { title: q ? `Tìm kiếm: ${q}` : "Tất cả sản phẩm" }
+  const filters = parseProductFilters(await searchParams)
+  return { title: filters.q ? `Tìm kiếm: ${filters.q}` : listingTitle(filters) }
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
   const sp = await searchParams
-  const { q } = parseProductFilters(sp)
+  const title = listingTitle(parseProductFilters(sp))
 
   return (
     <>
-      <h1 className="mb-6 text-3xl font-bold">{q ? `Kết quả cho “${q}”` : "Tất cả sản phẩm"}</h1>
+      <nav aria-label="Breadcrumb" className="mb-3 text-xs text-muted-foreground">
+        <Link href="/" className="inline-block py-2 hover:text-foreground">
+          Trang chủ
+        </Link>
+        {" / "}
+        <span className="text-foreground">{title}</span>
+      </nav>
+      <h1 className="mb-6 text-4xl font-semibold">{title}</h1>
       <ProductListing searchParams={sp} basePath="/products" />
     </>
   )

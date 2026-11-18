@@ -1,9 +1,10 @@
 ﻿"use client"
 
 import Link from "next/link"
-import { LayoutDashboardIcon, LogOutIcon, MapPinIcon, ShoppingBagIcon, UserIcon, UserRoundIcon } from "lucide-react"
+import { LayoutDashboardIcon, LogOutIcon, MapPinIcon, ShoppingBagIcon, TicketPercentIcon, UserIcon, UserRoundIcon } from "lucide-react"
 import { logoutAction } from "@/app/actions/auth"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { TierBadge } from "@/components/account/tier-badge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,21 +14,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { CUSTOMER_TIER_LABEL, customerTier, spendToNextTier, type TierRules } from "@/lib/customer-tier"
+import { formatVnd } from "@/lib/format"
 
 export interface AccountMenuUser {
   name: string
   email: string
   role: "CUSTOMER" | "ADMIN"
+  /** Tổng chi tiêu (không tính đơn huỷ) để hiện hạng thành viên của khách; Admin không cần. */
+  totalSpend?: number
+  /** Mức chi tiêu từng hạng (cấu hình ở Admin); thiếu thì dùng mặc định. */
+  tierRules?: TierRules
 }
 
-export function AccountMenu({ user }: { user: AccountMenuUser | null }) {
-  if (!user) {
-    return (
-      <Link href="/login" aria-label="Đăng nhập" className={buttonVariants({ variant: "secondary", size: "icon-sm" })}>
-        <UserIcon />
-      </Link>
-    )
-  }
+export function AccountMenu({ user }: { user: AccountMenuUser }) {
+  const tier = customerTier(user.totalSpend ?? 0, user.tierRules)
+  const next = spendToNextTier(user.totalSpend ?? 0, user.tierRules)
 
   return (
     <DropdownMenu>
@@ -39,8 +41,16 @@ export function AccountMenu({ user }: { user: AccountMenuUser | null }) {
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
-            <span className="truncate text-sm font-bold text-foreground">{user.name}</span>
+            <span className="truncate text-sm font-semibold text-foreground">{user.name}</span>
             <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+            {user.role === "CUSTOMER" && (
+              <span className="mt-1.5 flex flex-col items-start gap-1">
+                <TierBadge tier={tier} />
+                <span className="text-xs font-normal text-muted-foreground">
+                  {next ? `Còn ${formatVnd(next.remaining)} nữa để lên hạng ${CUSTOMER_TIER_LABEL[next.tier]}` : "Bạn đang ở hạng cao nhất"}
+                </span>
+              </span>
+            )}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
@@ -53,6 +63,11 @@ export function AccountMenu({ user }: { user: AccountMenuUser | null }) {
         <DropdownMenuItem render={<Link href="/account/orders" />}>
           <ShoppingBagIcon /> Đơn hàng của tôi
         </DropdownMenuItem>
+        {user.role === "CUSTOMER" && (
+          <DropdownMenuItem render={<Link href="/account/vouchers" />}>
+            <TicketPercentIcon /> Voucher của tôi
+          </DropdownMenuItem>
+        )}
         {user.role === "ADMIN" && (
           <DropdownMenuItem render={<Link href="/admin" />}>
             <LayoutDashboardIcon /> Trang quản trị

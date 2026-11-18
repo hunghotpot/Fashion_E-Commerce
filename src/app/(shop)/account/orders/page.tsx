@@ -32,19 +32,19 @@ export default async function OrdersPage({
     <div className="space-y-6 pb-16">
       <div>
         <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
-          <Link href="/" className="hover:text-foreground">
+          <Link href="/" className="inline-block py-2 hover:text-foreground">
             Trang chủ
           </Link>
           {" / "}
-          <Link href="/account/profile" className="hover:text-foreground">
+          <Link href="/account/profile" className="inline-block py-2 hover:text-foreground">
             Tài khoản
           </Link>
           {" / "}
-          <span className="font-bold text-foreground">Tất cả đơn mua</span>
+          <span className="font-semibold text-foreground">Tất cả đơn mua</span>
         </nav>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold">Đơn Hàng Của Tôi</h1>
-          <p className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-2 text-xs font-bold text-sidebar-foreground">
+          <h1 className="text-4xl font-semibold">Đơn Hàng Của Tôi</h1>
+          <p className="flex items-center gap-2 rounded-none border border-border bg-secondary/50 px-4 py-2 text-xs font-semibold text-sidebar-foreground">
             <span aria-hidden className="size-2 rounded-full bg-success" />
             Chủ đơn: <span className="text-foreground">{user.name}</span>
           </p>
@@ -55,7 +55,7 @@ export default async function OrdersPage({
 
       {result.items.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border-strong px-6 py-16 text-center">
-          <p className="text-lg font-bold">{filtering ? "Không tìm thấy đơn hàng phù hợp" : "Bạn chưa có đơn hàng nào"}</p>
+          <p className="text-lg font-semibold">{filtering ? "Không tìm thấy đơn hàng phù hợp" : "Bạn chưa có đơn hàng nào"}</p>
           <p className="max-w-sm text-label text-muted-foreground">
             {filtering ? "Thử bỏ bộ lọc hoặc đổi từ khoá tìm kiếm." : "Khi đặt hàng, đơn của bạn sẽ hiển thị ở đây để theo dõi."}
           </p>

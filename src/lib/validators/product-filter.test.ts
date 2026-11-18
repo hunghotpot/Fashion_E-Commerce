@@ -37,6 +37,18 @@ describe("parseProductFilters", () => {
   })
 })
 
+describe("featured", () => {
+  it("nhận 1/true, giá trị khác bỏ qua, round-trip qua URL", () => {
+    expect(parseProductFilters({ featured: "1" }).featured).toBe(true)
+    expect(parseProductFilters({ featured: "true" }).featured).toBe(true)
+    expect(parseProductFilters({ featured: "0" }).featured).toBeUndefined()
+    expect(parseProductFilters({}).featured).toBeUndefined()
+    const sp = serializeProductFilters(parseProductFilters({ featured: "1" }))
+    expect(sp.toString()).toBe("featured=1")
+    expect(parseProductFilters(sp).featured).toBe(true)
+  })
+})
+
 describe("serializeProductFilters", () => {
   it("bỏ giá trị mặc định và round-trip về đúng filter", () => {
     const f = parseProductFilters({ q: "áo thun", size: ["M", "L"], minPrice: "100000", sort: "price_asc", page: "3", inStock: "1" })

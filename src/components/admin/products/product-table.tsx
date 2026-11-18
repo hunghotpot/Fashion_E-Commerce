@@ -1,4 +1,4 @@
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { AdminEmpty, AdminTable, AdminTr } from "@/components/admin/list/admin-table"
 import { StatusPill, type PillTone } from "@/components/admin/status-pill"
 import { formatVnd } from "@/lib/format"
@@ -18,8 +18,8 @@ const COLUMNS = [
 ]
 
 const TONE: Record<StockStatus, PillTone> = { IN_STOCK: "success", LOW: "warning", OUT: "danger" }
-const SIZE_CLASS: Record<StockStatus, string> = { IN_STOCK: "text-muted-foreground", LOW: "font-bold text-warning", OUT: "font-bold text-brand" }
-const TOTAL_CLASS: Record<StockStatus, string> = { IN_STOCK: "", LOW: "text-warning", OUT: "text-brand" }
+const SIZE_CLASS: Record<StockStatus, string> = { IN_STOCK: "text-muted-foreground", LOW: "font-semibold text-warning", OUT: "font-semibold text-destructive" }
+const TOTAL_CLASS: Record<StockStatus, string> = { IN_STOCK: "", LOW: "text-warning", OUT: "text-destructive" }
 
 function priceLabel(p: AdminProductListItem) {
   return p.priceMax > p.priceMin ? `${formatVnd(p.priceMin)} – ${formatVnd(p.priceMax)}` : formatVnd(p.priceMin)
@@ -32,7 +32,7 @@ export function ProductTable({ items, searchParams }: { items: AdminProductListI
     <AdminTable columns={COLUMNS} minWidth={980} caption="Kho hàng sản phẩm">
       {items.map((p) => (
         <AdminTr key={p.id} className={cn(!p.isActive && "bg-secondary/40")}>
-          <td className="font-bold whitespace-nowrap" title={p.skus.join(", ")}>
+          <td className="font-semibold whitespace-nowrap" title={p.skus.join(", ")}>
             {p.skus[0] ?? "—"}
             {p.skus.length > 1 && <span className="block text-xs font-normal text-muted-foreground">+{p.skus.length - 1} SKU</span>}
           </td>
@@ -45,33 +45,48 @@ export function ProductTable({ items, searchParams }: { items: AdminProductListI
                 )}
               </div>
               <div className="min-w-0">
-                <p className="font-bold">{p.name}</p>
+                <p className="font-semibold">{p.name}</p>
                 <p className="text-xs text-muted-foreground">{p.category.name}</p>
               </div>
             </div>
           </td>
-          <td className="space-y-1">
-            {p.colors.length === 0 && <span className="text-xs text-muted-foreground">Chưa có size/màu</span>}
-            {p.colors.map((c) => (
-              <div key={c.color} className="text-xs">
-                <p className="flex items-center gap-1.5 font-bold text-label">
-                  <span aria-hidden className="size-2.5 rounded-full border border-border" style={{ backgroundColor: c.colorHex }} />
-                  Màu: {c.color}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Size: </span>
-                  {c.sizes.map((s, i) => (
-                    <span key={s.variantId} className={SIZE_CLASS[s.status]}>
-                      {i > 0 && ", "}
-                      {s.size} ({s.stock})
-                    </span>
+          <td>
+            {p.colors.length === 0 ? (
+              <span className="text-xs text-muted-foreground">Chưa có size/màu</span>
+            ) : (
+              <details className="group/variants">
+                <summary
+                  className={cn(
+                    "flex cursor-pointer list-none items-center gap-2 text-xs font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/40 after:text-base after:leading-none after:content-['+'] group-open/variants:after:content-['–'] [&::-webkit-details-marker]:hidden",
+                    TOTAL_CLASS[p.status]
+                  )}
+                >
+                  {p.colors.length} màu · {p.colors.reduce((n, c) => n + c.sizes.length, 0)} biến thể
+                </summary>
+                <div className="mt-2 space-y-1">
+                  {p.colors.map((c) => (
+                    <div key={c.color} className="text-xs">
+                      <p className="flex items-center gap-1.5 text-label font-semibold">
+                        <span aria-hidden className="size-2.5 rounded-full border border-border" style={{ backgroundColor: c.colorHex }} />
+                        Màu: {c.color}
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">Size: </span>
+                        {c.sizes.map((s, i) => (
+                          <span key={s.variantId} className={SIZE_CLASS[s.status]}>
+                            {i > 0 && ", "}
+                            {s.size} ({s.stock})
+                          </span>
+                        ))}
+                      </p>
+                    </div>
                   ))}
-                </p>
-              </div>
-            ))}
+                </div>
+              </details>
+            )}
           </td>
-          <td className="font-bold whitespace-nowrap">{priceLabel(p)}</td>
-          <td className={cn("font-bold whitespace-nowrap", TOTAL_CLASS[p.status])}>{p.totalStock.toLocaleString("vi-VN")} cái</td>
+          <td className="font-semibold whitespace-nowrap">{priceLabel(p)}</td>
+          <td className={cn("font-semibold whitespace-nowrap", TOTAL_CLASS[p.status])}>{p.totalStock.toLocaleString("vi-VN")} cái</td>
           <td>
             <div className="flex flex-col items-start gap-1.5">
               <StatusPill tone={TONE[p.status]}>{STOCK_STATUS_LABEL[p.status]}</StatusPill>

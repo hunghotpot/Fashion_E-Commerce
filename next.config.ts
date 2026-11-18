@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Chuyển trang mờ dần: bật <ViewTransition> của React (thử nghiệm). Nếu gây lỗi hiển thị, tắt cờ này là trở về như cũ.
+  experimental: { viewTransition: true },
   images: {
     // Ảnh seed là ảnh giữ chỗ từ placehold.co. Giữ picsum để dữ liệu cũ (chưa seed lại) vẫn hiển thị khi picsum hoạt động.
     remotePatterns: [

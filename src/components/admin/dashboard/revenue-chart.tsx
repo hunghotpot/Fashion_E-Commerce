@@ -1,9 +1,12 @@
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { vnDateKey } from "@/lib/admin-dates"
 import { formatVnd } from "@/lib/format"
 import type { DashboardStats } from "@/server/services/admin-dashboard.service"
 
-// Figma: cột bo tròn, cột cao nhất màu brand, cột hôm nay màu ink, các cột còn lại xám nhạt. Chỉ CSS, không thêm thư viện biểu đồ.
+// Nhãn giá trị gọn trên mỗi cột (vd "12,2 Tr"); giá trị đầy đủ vẫn có trong aria-label/title của cột.
+const COMPACT = new Intl.NumberFormat("vi-VN", { notation: "compact", maximumFractionDigits: 1 })
+
+// Cột bo tròn, cột cao nhất màu brand, cột hôm nay màu ink, các cột còn lại xám nhạt. Chỉ CSS, không thêm thư viện biểu đồ.
 export function RevenueChart({ data }: { data: DashboardStats["weeklyRevenue"] }) {
   const max = Math.max(...data.map((d) => d.revenue), 0)
   const today = vnDateKey(new Date())
@@ -12,7 +15,7 @@ export function RevenueChart({ data }: { data: DashboardStats["weeklyRevenue"] }
   return (
     <section aria-labelledby="revenue-chart-title" className="flex flex-col rounded-3xl border border-border bg-card p-6">
       <div className="flex items-start justify-between gap-3">
-        <h2 id="revenue-chart-title" className="text-base font-bold">
+        <h2 id="revenue-chart-title" className="font-sans text-base font-semibold">
           Biểu đồ doanh thu tuần này
         </h2>
         <p className="text-xs text-muted-foreground">Cập nhật: Hôm nay</p>
@@ -23,7 +26,10 @@ export function RevenueChart({ data }: { data: DashboardStats["weeklyRevenue"] }
           const pct = max > 0 ? Math.max(4, Math.round((d.revenue / max) * 100)) : 4
           const isToday = d.date === today
           return (
-            <li key={d.date} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-3">
+            <li key={d.date} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+              <span aria-hidden className="text-2xs font-semibold whitespace-nowrap text-muted-foreground">
+                {d.revenue > 0 ? COMPACT.format(d.revenue) : ""}
+              </span>
               <div
                 role="img"
                 aria-label={`${d.label}: ${formatVnd(d.revenue)}`}
@@ -31,7 +37,7 @@ export function RevenueChart({ data }: { data: DashboardStats["weeklyRevenue"] }
                 style={{ height: `${pct}%` }}
                 className={cn("w-full max-w-14 rounded-xl", i === peak ? "bg-brand" : isToday ? "bg-ink" : "bg-secondary")}
               />
-              <span className={cn("text-xs font-bold", i === peak ? "text-brand" : isToday ? "text-foreground" : "text-subtle-foreground")}>
+              <span className={cn("text-xs font-semibold", i === peak ? "text-brand" : isToday ? "text-foreground" : "text-subtle-foreground")}>
                 {d.label}
               </span>
             </li>

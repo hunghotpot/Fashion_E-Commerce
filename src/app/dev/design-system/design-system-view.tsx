@@ -215,7 +215,7 @@ export function DesignSystemView() {
         <Badge variant="brand">DEV ONLY</Badge>
         <h1 className="text-4xl font-bold">Design System</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Reference page to compare against Figma &ldquo;Modern&rdquo; (Customer + Admin). Not
+          Reference page for the design tokens and shared components (Customer + Admin). Not
           rendered in production builds. All values come from CSS variables in{" "}
           <code className="font-mono text-xs">globals.css</code>.
         </p>
@@ -232,7 +232,7 @@ export function DesignSystemView() {
       <Section
         id="colors"
         title="Colors"
-        note="Figma defines no variables. Login, Checkout and Admin frames use the slate palette + #E61E4D; the Home frame uses a gray palette + #E11D48 — unified onto slate/#E61E4D (see conflict list)."
+        note="Colour tokens defined in globals.css (design system Ấm áp tinh tế)."
       >
         {colorGroups.map((g) => (
           <div key={g.title} className="mb-8">
@@ -257,7 +257,7 @@ export function DesignSystemView() {
       <Section
         id="typography"
         title="Typography"
-        note="Font: Inter via next/font (latin, latin-ext, vietnamese). Figma only uses Regular 400 and Bold 700."
+        note="Fonts loaded via next/font (latin, latin-ext, vietnamese)."
       >
         <div className="mb-8 flex flex-wrap gap-10">
           <div>
@@ -297,7 +297,7 @@ export function DesignSystemView() {
       </Section>
 
       {/* ───── Radius ───── */}
-      <Section id="radius" title="Radius" note="Figma shape radii ÷ 1.4917 (canvas is 2148px wide ≈ 1440 × 1.4917), snapped to the nearest clean value.">
+      <Section id="radius" title="Radius" note="Radius tokens from globals.css.">
         <div className="flex flex-wrap gap-6">
           {radii.map(([n, v, c]) => (
             <Cell key={n} label={`${n} · ${v}`}>
@@ -308,7 +308,7 @@ export function DesignSystemView() {
       </Section>
 
       {/* ───── Shadow ───── */}
-      <Section id="shadow" title="Shadow" note="Figma is flat (1px borders only). These two shadows are not from Figma — added for floating layers.">
+      <Section id="shadow" title="Shadow" note="Flat by default (1px borders). These two shadows are only for floating layers.">
         <div className="flex flex-wrap gap-8 rounded-2xl bg-background p-8">
           <Cell label="border only (cards)">
             <div className="h-20 w-40 rounded-xl border border-border bg-surface" />
@@ -498,7 +498,7 @@ export function DesignSystemView() {
       </Section>
 
       {/* ───── Tabs ───── */}
-      <Section id="tabs" title="Tabs" note="Not present in Figma — inferred (see conflict list).">
+      <Section id="tabs" title="Tabs" note="Inferred from the size-chip and nav link patterns.">
         <div className="grid gap-8 md:grid-cols-2">
           <Tabs defaultValue="a">
             <TabsList>
@@ -630,7 +630,7 @@ export function DesignSystemView() {
       </Section>
 
       {/* ───── Toast ───── */}
-      <Section id="feedback" title="Toast (sonner)" note="Not present in Figma — inferred from card/status tokens.">
+      <Section id="feedback" title="Toast (sonner)" note="Inferred from card/status tokens.">
         <div className="flex flex-wrap gap-4">
           <Button variant="dark" onClick={() => toast("Đã thêm vào giỏ hàng", { description: "Giày Chạy Bộ Ultraboost 22 · Size 40" })}>Default</Button>
           <Button variant="secondary" onClick={() => toast.success("Đặt hàng thành công")}>Success</Button>

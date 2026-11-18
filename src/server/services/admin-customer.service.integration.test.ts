@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs"
 import { afterAll, describe, expect, it } from "vitest"
-import { VIP_SPEND_THRESHOLD } from "@/lib/customer-tier"
+import { CUSTOMER_TIER_CONFIG } from "@/lib/customer-tier"
 import { db } from "@/server/db"
 import { createFixtures } from "@/test/db-fixtures"
 import {
@@ -56,31 +56,40 @@ async function makeOrder(userId: string, total: number, status: "PENDING" | "DEL
 const prefixOf = (email: string) => email.split("-")[0]
 
 describe("listCustomers / getCustomerDetail", () => {
-  it("tính số đơn, tổng chi tiêu (bỏ đơn huỷ), hạng; lọc VIP/Thành viên/Bị khoá; tìm kiếm; phân trang", async () => {
-    const vip = (await fx.makeBuyer([])).user
+  it("tính số đơn, tổng chi tiêu (chỉ đơn đã giao/đã thanh toán), hạng; lọc theo hạng/Bị khoá; tìm kiếm; phân trang", async () => {
+    const vip = (await fx.makeBuyer([])).user // hạng Vàng
+    const silver = (await fx.makeBuyer([])).user
+    const diamond = (await fx.makeBuyer([])).user
     const member = (await fx.makeBuyer([])).user
     const none = (await fx.makeBuyer([])).user
     const locked = (await fx.makeBuyer([])).user
     await db.user.update({ where: { id: locked.id }, data: { status: "LOCKED" } })
 
-    await makeOrder(vip.id, VIP_SPEND_THRESHOLD - 1_000_000)
-    await makeOrder(vip.id, 1_000_000, "PENDING")
+    await makeOrder(vip.id, CUSTOMER_TIER_CONFIG.GOLD.minSpend - 1_000_000)
+    await makeOrder(vip.id, 1_000_000)
+    await makeOrder(vip.id, 1_000_000, "PENDING") // đang chờ: có trong số đơn, chưa tính vào chi tiêu
     await makeOrder(vip.id, 50_000_000, "CANCELLED") // không tính
+    await makeOrder(silver.id, CUSTOMER_TIER_CONFIG.SILVER.minSpend)
+    await makeOrder(diamond.id, CUSTOMER_TIER_CONFIG.DIAMOND.minSpend)
     await makeOrder(member.id, 100_000)
 
     const q = prefixOf(vip.email)
     const all = await listCustomers({ q, pageSize: 50 })
-    expect(all.total).toBe(4)
+    expect(all.total).toBe(6)
     const byId = new Map(all.items.map((i) => [i.id, i]))
-    expect(byId.get(vip.id)).toMatchObject({ orderCount: 2, totalSpend: VIP_SPEND_THRESHOLD, tier: "VIP", status: "ACTIVE" })
+    expect(byId.get(vip.id)).toMatchObject({ orderCount: 3, totalSpend: CUSTOMER_TIER_CONFIG.GOLD.minSpend, tier: "GOLD", status: "ACTIVE" })
+    expect(byId.get(silver.id)).toMatchObject({ tier: "SILVER" })
+    expect(byId.get(diamond.id)).toMatchObject({ tier: "DIAMOND" })
     expect(byId.get(member.id)).toMatchObject({ orderCount: 1, totalSpend: 100_000, tier: "MEMBER" })
     expect(byId.get(none.id)).toMatchObject({ orderCount: 0, totalSpend: 0, tier: "MEMBER", initial: "N" })
     expect(byId.get(locked.id)?.status).toBe("LOCKED")
     expect(JSON.stringify(all.items)).not.toContain("passwordHash")
 
-    const ids = async (filter: "vip" | "member" | "locked") =>
+    const ids = async (filter: "member" | "silver" | "gold" | "diamond" | "locked") =>
       (await listCustomers({ q, filter, pageSize: 50 })).items.map((i) => i.id).sort()
-    expect(await ids("vip")).toEqual([vip.id])
+    expect(await ids("gold")).toEqual([vip.id])
+    expect(await ids("silver")).toEqual([silver.id])
+    expect(await ids("diamond")).toEqual([diamond.id])
     expect(await ids("member")).toEqual([member.id, none.id, locked.id].sort())
     expect(await ids("locked")).toEqual([locked.id])
 
@@ -88,15 +97,15 @@ describe("listCustomers / getCustomerDetail", () => {
     const p2 = await listCustomers({ q, pageSize: 3, page: 2 })
     expect(p1.totalPages).toBe(2)
     expect(p1.items).toHaveLength(3)
-    expect(p2.items).toHaveLength(1)
+    expect(p2.items).toHaveLength(3)
 
     expect((await listCustomers({ q: member.email.toUpperCase() })).items.map((i) => i.id)).toEqual([member.id])
     expect((await listCustomers({ q: "khong-co-ai-ten-nay-xyz" })).items).toEqual([])
 
     const detail = await getCustomerDetail(vip.id)
-    expect(detail).toMatchObject({ orderCount: 2, totalSpend: VIP_SPEND_THRESHOLD, tier: "VIP" })
+    expect(detail).toMatchObject({ orderCount: 3, totalSpend: CUSTOMER_TIER_CONFIG.GOLD.minSpend, tier: "GOLD" })
     expect(detail.addresses).toHaveLength(1)
-    expect(detail.recentOrders).toHaveLength(3) // đơn huỷ vẫn hiện trong lịch sử gần đây
+    expect(detail.recentOrders).toHaveLength(4) // đơn huỷ và đơn chờ vẫn hiện trong lịch sử gần đây
     expect(JSON.stringify(detail)).not.toContain("passwordHash")
   })
 
@@ -114,11 +123,11 @@ describe("listCustomers / getCustomerDetail", () => {
 })
 
 describe("getCustomerSummary", () => {
-  it("cộng đúng tổng khách, khách mới, VIP; tỉ lệ mua lại hợp lệ", async () => {
+  it("cộng đúng tổng khách, khách mới, khách từ hạng Vàng; tỉ lệ mua lại hợp lệ", async () => {
     const before = await getCustomerSummary()
     const a = (await fx.makeBuyer([])).user
     const b = (await fx.makeBuyer([])).user
-    await makeOrder(a.id, VIP_SPEND_THRESHOLD)
+    await makeOrder(a.id, CUSTOMER_TIER_CONFIG.GOLD.minSpend)
     await makeOrder(a.id, 1000)
     await makeOrder(b.id, 1000)
     await makeOrder(b.id, 99_000_000, "CANCELLED")
@@ -126,7 +135,7 @@ describe("getCustomerSummary", () => {
 
     expect(after.totalCustomers - before.totalCustomers).toBe(2)
     expect(after.newThisMonth - before.newThisMonth).toBe(2)
-    expect(after.vipCount - before.vipCount).toBe(1)
+    expect(after.goldPlusCount - before.goldPlusCount).toBe(1)
     expect(after.repurchaseRate).toBeGreaterThanOrEqual(0)
     expect(after.repurchaseRate).toBeLessThanOrEqual(100)
   })

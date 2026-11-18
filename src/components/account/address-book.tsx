@@ -11,6 +11,7 @@ import {
   setDefaultAddressAction,
   updateAddressAction,
 } from "@/app/actions/account"
+import { AddressUnitFields } from "@/components/account/address-unit-fields"
 import { FormField, FormMessage } from "@/components/auth/form-field"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -42,7 +43,7 @@ export function AddressBook({ addresses }: { addresses: AddressDTO[] }) {
   return (
     <div className="flex flex-col gap-6 rounded-3xl border border-border bg-card p-8">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-bold">Sổ địa chỉ</h2>
+        <h2 className="text-2xl font-semibold">Sổ địa chỉ</h2>
         <Button variant="dark" size="md" onClick={() => setEditing(null)}>
           <PlusIcon /> Thêm địa chỉ
         </Button>
@@ -58,12 +59,12 @@ export function AddressBook({ addresses }: { addresses: AddressDTO[] }) {
             <li key={a.id} className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold">{a.fullName}</span>
+                  <span className="font-semibold">{a.fullName}</span>
                   {a.isDefault && <Badge>Mặc định</Badge>}
                 </div>
                 <span className="text-label text-muted-foreground">{a.phone}</span>
                 <span className="text-label">
-                  {[a.street, a.ward, a.district, a.province].join(", ")}
+                  {[a.street, a.ward, a.province].join(", ")}
                 </span>
               </div>
               <div className="mt-auto flex flex-wrap gap-2">
@@ -111,6 +112,8 @@ function AddressForm({ address, onDone }: { address: AddressDTO | null; onDone: 
     control,
     handleSubmit,
     setError,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<AddressInput>({
     resolver: zodResolver(addressSchema),
@@ -119,7 +122,6 @@ function AddressForm({ address, onDone }: { address: AddressDTO | null; onDone: 
       phone: address?.phone ?? "",
       street: address?.street ?? "",
       ward: address?.ward ?? "",
-      district: address?.district ?? "",
       province: address?.province ?? "",
       isDefault: address?.isDefault ?? false,
     },
@@ -149,19 +151,18 @@ function AddressForm({ address, onDone }: { address: AddressDTO | null; onDone: 
           {(a11y) => <Input {...a11y} type="tel" autoComplete="tel" {...register("phone")} />}
         </FormField>
       </div>
-      <FormField id="addr-street" label="Số nhà, tên đường" required error={errors.street?.message}>
+      <AddressUnitFields
+        idPrefix="addr"
+        province={watch("province")}
+        ward={watch("ward")}
+        onChange={(next) => {
+          setValue("province", next.province, { shouldValidate: true })
+          setValue("ward", next.ward, { shouldValidate: !!next.ward })
+        }}
+        errors={{ province: errors.province?.message, ward: errors.ward?.message }}
+      />
+      <FormField id="addr-street" label="Số nhà, tên đường" required error={errors.street?.message} hint="Ví dụ: 12 Nguyễn Huệ, hẻm 45/3 Lê Lợi">
         {(a11y) => <Input {...a11y} autoComplete="address-line1" {...register("street")} />}
-      </FormField>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="addr-ward" label="Phường/Xã" required error={errors.ward?.message}>
-          {(a11y) => <Input {...a11y} {...register("ward")} />}
-        </FormField>
-        <FormField id="addr-district" label="Quận/Huyện" required error={errors.district?.message}>
-          {(a11y) => <Input {...a11y} {...register("district")} />}
-        </FormField>
-      </div>
-      <FormField id="addr-province" label="Tỉnh/Thành phố" required error={errors.province?.message}>
-        {(a11y) => <Input {...a11y} {...register("province")} />}
       </FormField>
       <Controller
         control={control}

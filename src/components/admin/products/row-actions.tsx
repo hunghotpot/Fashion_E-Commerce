@@ -31,7 +31,7 @@ export function ProductRowActions({
 
   return (
     <div className="flex items-center justify-end gap-3 whitespace-nowrap">
-      <Link href={editHref} scroll={false} aria-label={`Sửa ${name}`} className="text-label font-bold hover:underline">
+      <Link href={editHref} scroll={false} aria-label={`Sửa ${name}`} className="inline-flex min-h-6 items-center text-label font-semibold hover:underline pointer-coarse:min-h-11">
         Sửa
       </Link>
       <button
@@ -39,7 +39,7 @@ export function ProductRowActions({
         aria-label={`Nhập kho ${name}`}
         disabled={variants.length === 0}
         onClick={() => setStockOpen(true)}
-        className="text-label font-bold text-brand hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+        className="inline-flex min-h-6 items-center text-label font-semibold text-brand hover:underline disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:min-h-11"
       >
         Nhập
       </button>

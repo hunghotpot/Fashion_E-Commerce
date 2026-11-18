@@ -17,7 +17,7 @@ export function CategoryPicker({ options, value }: { options: PickerOption[]; va
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <label id="size-chart-category-label" className="text-label font-bold">
+      <label id="size-chart-category-label" className="text-label font-semibold">
         Danh mục
       </label>
       <Select value={value} onValueChange={(v) => v && router.replace(`${pathname}?categoryId=${encodeURIComponent(v)}`, { scroll: false })}>

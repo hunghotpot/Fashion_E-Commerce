@@ -89,7 +89,7 @@ Sao chép `.env.example` thành `.env` (đã nằm trong `.gitignore`, **không 
 | `REDIS_URL` | Không | Redis cho giới hạn tốc độ AI và kho xác nhận; thiếu thì rơi về bộ nhớ |
 | `JWT_SECRET` | Có | Chuỗi ngẫu nhiên từ 32 ký tự trở lên (ví dụ `openssl rand -base64 32`) |
 | `NEXT_PUBLIC_APP_URL` | Có | Địa chỉ site (`http://localhost:3000` khi dev) |
-| `BANK_NAME`, `BANK_BIN`, `BANK_ACCOUNT_NO`, `BANK_ACCOUNT_NAME` | Không | Tài khoản nhận chuyển khoản (VietQR); mặc định là **dữ liệu mẫu**, thay bằng tài khoản thật |
+| `BANK_NAME`, `BANK_BIN`, `BANK_ACCOUNT_NO`, `BANK_ACCOUNT_NAME` | Không | Tài khoản nhận chuyển khoản MẶC ĐỊNH (VietQR), là **dữ liệu mẫu**. Admin cập nhật tài khoản thật ở Cài đặt > Cổng thanh toán (lưu trong DB, ưu tiên hơn các biến này) |
 | `VNP_TMN_CODE`, `VNP_HASH_SECRET`, `VNP_URL`, `VNP_RETURN_URL` | Không | VNPay; để trống thì phương thức VNPay bị khoá ở trang thanh toán |
 | `CRON_SECRET` | Không | Bảo vệ route cron `/api/cron/expire-orders`; để trống thì route bị khoá |
 | `PRISMA_QUERY_LOG` | Không | Đặt `1` để in mọi câu SQL khi dev |
@@ -105,10 +105,21 @@ Sao chép `.env.example` thành `.env` (đã nằm trong `.gitignore`, **không 
 | `npm run dev` | Chạy dev server |
 | `npm run build` / `npm start` | Build / chạy production |
 | `npm run db:up` / `npm run db:down` | Bật / tắt PostgreSQL + Redis (dữ liệu giữ trong Docker volume) |
+| `npm run mail:up` / `npm run mail:down` | Bật / tắt Mailpit, hộp thư giả để thử email đơn hàng (tuỳ chọn, xem mục "Email đơn hàng") |
 | `npm run db:seed` | Seed dữ liệu |
 | `npm run ai:*` | Công cụ của trợ lý AI (nạp vector, đo, xem nhật ký): xem mục [Bật trợ lý AI](#bật-trợ-lý-ai-tuỳ-chọn) |
 
-Kiểm tra sau khi cài: `npm run lint && npm run typecheck && npm test` (test tích hợp cần `db:up` và dữ liệu đã migrate). Máy Windows bị Application Control chặn file native của rollup: dự án đã dùng `@rollup/wasm-node` thay cho `rollup` (xem `package.json`).
+Kiểm tra sau khi cài: `npm run lint && npm run typecheck && npm test` (test tích hợp cần `db:up`). **Test chạy trên DB riêng `fashion_test`** (cùng máy chủ PostgreSQL, tự tạo, tự migrate và seed lần đầu, xem `src/test/global-setup.ts`), nên không đụng dữ liệu dev; muốn dùng DB khác thì đặt `TEST_DATABASE_URL` (tên DB phải kết thúc bằng `_test`, nếu không test từ chối chạy). Máy Windows bị Application Control chặn file native của rollup: dự án đã dùng `@rollup/wasm-node` thay cho `rollup` (xem `package.json`).
+
+### Email đơn hàng (tuỳ chọn, mặc định tắt)
+
+Khi bật, cửa hàng gửi email cho chủ đơn lúc đặt đơn và khi đơn được xác nhận, giao đi, giao xong hoặc bị huỷ (cùng nội dung với chuông thông báo). **Mặc định tắt**: không đặt gì thì web chạy bình thường và không gửi mail.
+
+```bash
+npm run mail:up      # chạy Mailpit (hộp thư giả); xem thư ở http://localhost:8025, không gửi ra Internet
+```
+
+Rồi bỏ comment khối `MAIL_*` / `SMTP_*` trong `.env` (mẫu ở `.env.example`: `MAIL_ENABLED="true"`, `SMTP_HOST="localhost"`, `SMTP_PORT="1025"`) và khởi động lại `npm run dev`. Đặt đơn thử rồi mở Mailpit để xem. Dùng máy chủ SMTP thật thì chỉ đổi các biến `SMTP_*` và `MAIL_FROM`. Email lỗi hoặc chậm không làm hỏng đơn hàng (chỉ ghi một dòng cảnh báo có mã đơn trong log). Code: `src/server/mail/`, `src/server/services/order-email.service.ts`.
 
 ## Dữ liệu mẫu và tài khoản demo
 
@@ -121,7 +132,7 @@ Kiểm tra sau khi cài: `npm run lint && npm run typecheck && npm test` (test t
 
 `npm run db:seed` **xoá toàn bộ dữ liệu hiện có** rồi nạp lại (từ chối chạy khi `NODE_ENV=production`). Kết quả cố định giữa các lần chạy.
 
-Nội dung: 20 category (cây Nam / Nữ / Unisex + Phụ kiện), 125 sản phẩm, 378 ảnh giữ chỗ (placehold.co, ghi tên sản phẩm; ảnh thật tải lên qua trang Admin), 1.113 biến thể size × màu (một số hết hàng), 83 dòng size chart.
+Nội dung: 20 category (cây Nam / Nữ / Unisex + Phụ kiện), 125 sản phẩm, 378 ảnh tạm (picsum.photos, ngẫu nhiên, không liên quan quần áo; ảnh thật tải lên qua trang Admin), 1.113 biến thể size × màu (một số hết hàng), 83 dòng size chart.
 
 Dữ liệu nằm trong `prisma/seed-data/` để dễ chỉnh:
 
@@ -132,7 +143,7 @@ Dữ liệu nằm trong `prisma/seed-data/` để dễ chỉnh:
 | `products/*.ts` | Sản phẩm theo category (tên, giá, màu, mô tả, gợi ý phối) |
 | `vocab.ts` | Bảng màu (tên + hex), chất liệu (nhãn + câu mô tả) |
 | `size-charts.ts` | Size chart theo từng category lá (số đo cơ thể; bảng nữ là số đo ước lượng) |
-| `build.ts` | Ghép mô tả, sinh slug, SKU, biến thể, tồn kho, ảnh giữ chỗ (placehold.co) |
+| `build.ts` | Ghép mô tả, sinh slug, SKU, biến thể, tồn kho, ảnh tạm (picsum.photos) |
 
 ## Cấu trúc thư mục
 

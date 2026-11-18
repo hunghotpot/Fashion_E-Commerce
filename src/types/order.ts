@@ -21,7 +21,6 @@ export interface OrderAddressSnapshot {
   phone: string
   street: string
   ward: string
-  district: string
   province: string
 }
 
@@ -34,6 +33,11 @@ export interface OrderDetail {
   createdAt: Date
   subtotal: number
   shippingFee: number
+  /** Mã giảm giá (trừ vào tiền hàng) và mã vận chuyển (trừ vào phí ship). total = subtotal + shippingFee - discount - shippingDiscount. */
+  discount: number
+  voucherCode: string | null
+  shippingDiscount: number
+  shippingVoucherCode: string | null
   total: number
   note: string | null
   shippingAddress: OrderAddressSnapshot

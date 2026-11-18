@@ -50,41 +50,12 @@ function buildDescription(p: ProductSeed, index: number): string {
 }
 
 /*
- * Ảnh giữ chỗ cho dữ liệu seed: placehold.co (picsum.photos thường xuyên quá tải/lỗi).
- * Mỗi sản phẩm một màu theo loại đồ, ghi tên sản phẩm và số ảnh để phân biệt; cùng đầu vào luôn ra cùng URL.
- * Chỉ để dev/demo: ảnh thật tải lên qua trang Admin (public/uploads).
+ * Ảnh tạm cho dữ liệu seed: picsum.photos (ảnh ngẫu nhiên, KHÔNG liên quan quần áo, chỉ để thấy bố cục có ảnh).
+ * `/seed/<khoá>/800/1000` cố định ảnh theo khoá nên cùng đầu vào luôn ra cùng URL. Dịch vụ này đôi lúc chậm hoặc lỗi.
+ * Thay bằng ảnh thật khi có: tải lên qua trang Admin (public/uploads) hoặc sửa hàm này.
  */
-const PLACEHOLDER_COLORS: Record<string, [bg: string, fg: string]> = {
-  "ao-thun": ["e2e8f0", "334155"],
-  "ao-so-mi": ["dbeafe", "1e3a8a"],
-  "ao-khoac": ["e7e5e4", "44403c"],
-  "quan-jeans": ["c7d2fe", "312e81"],
-  "quan-tay-kaki": ["e8dcc4", "57534e"],
-  "vay-dam": ["fde2e4", "881337"],
-  "vest-du-tiec-nam": ["d9e4dd", "14532d"],
-  "phu-kien": ["fef3c7", "78350f"],
-};
-
-/** Ngắt tên thành các dòng ngắn (tối đa ~16 ký tự) để chữ không tràn ảnh. */
-function wrapLabel(text: string, max = 16): string[] {
-  const lines: string[] = [];
-  let line = "";
-  for (const word of text.split(/\s+/)) {
-    if (line && (line + " " + word).length > max) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = line ? `${line} ${word}` : word;
-    }
-  }
-  if (line) lines.push(line);
-  return lines;
-}
-
 export function placeholderImageUrl(groupKey: string, name: string, n: number): string {
-  const [bg, fg] = PLACEHOLDER_COLORS[groupKey] ?? ["e2e8f0", "334155"];
-  const text = [...wrapLabel(name), `(ảnh ${n})`].join("\n");
-  return `https://placehold.co/800x1000/${bg}/${fg}.png?text=${encodeURIComponent(text)}&font=source-sans-pro`;
+  return `https://picsum.photos/seed/${encodeURIComponent(`${groupKey}-${name}-${n}`)}/800/1000`;
 }
 
 // ─────────────── builders ───────────────

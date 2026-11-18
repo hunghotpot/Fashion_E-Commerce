@@ -77,6 +77,7 @@ export function useProductFilters() {
         minPrice: undefined,
         maxPrice: undefined,
         inStock: undefined,
+        featured: undefined,
         page: 1,
       }),
     [filters, push]
@@ -108,6 +109,7 @@ export function useProductFilters() {
       add("price", label, { minPrice: undefined, maxPrice: undefined })
     }
     if (filters.inStock) add("inStock", "Còn hàng", { inStock: undefined })
+    if (filters.featured) add("featured", "Nổi bật", { featured: undefined })
     return out
   }, [filters, update])
 

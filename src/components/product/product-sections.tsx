@@ -10,19 +10,37 @@ export function SectionHeading({
   id,
   title,
   href,
+  linkLabel = "Xem tất cả →",
+  eyebrow,
 }: {
   id: string
   title: ReactNode
   href?: string
+  /** Chữ của liên kết nhỏ gạch chân bên phải tiêu đề (mặc định "Xem tất cả →"). */
+  linkLabel?: string
+  /** Dòng nhỏ viết hoa phía trên tiêu đề. */
+  eyebrow?: string
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <h2 id={id} className="text-lg font-bold uppercase md:text-xl">
-        {title}
-      </h2>
+    <div className="flex items-end justify-between gap-4">
+      <div>
+        {eyebrow && (
+          <p className="mb-1.5 text-2xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">{eyebrow}</p>
+        )}
+        <h2
+          id={id}
+          tabIndex={-1}
+          className="text-2xl font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/40 md:text-3xl"
+        >
+          {title}
+        </h2>
+      </div>
       {href && (
-        <Link href={href} className="shrink-0 text-label font-bold hover:text-primary">
-          Xem tất cả →
+        <Link
+          href={href}
+          className="inline-flex min-h-11 shrink-0 items-center text-label font-semibold underline underline-offset-4 hover:text-primary"
+        >
+          {linkLabel}
         </Link>
       )}
     </div>
@@ -33,11 +51,12 @@ export async function FeaturedProducts() {
   const products = await getFeaturedProducts(8)
   if (products.length === 0) return null
   return (
-    <section aria-labelledby="featured-heading" className="space-y-6">
+    <section id="noi-bat" aria-labelledby="featured-heading" className="reveal scroll-mt-24 space-y-6">
       <SectionHeading
         id="featured-heading"
-        title={`Sản phẩm nổi bật (${products.length})`}
-        href="/products"
+        title="Sản phẩm nổi bật"
+        eyebrow="Tuyển chọn"
+        href="/products?featured=1"
       />
       <div className={GRID}>
         {products.map((p) => (
@@ -52,8 +71,8 @@ export async function NewProducts() {
   const products = await getNewProducts(8)
   if (products.length === 0) return null
   return (
-    <section aria-labelledby="new-heading" className="space-y-6">
-      <SectionHeading id="new-heading" title="Sản phẩm mới" href="/products?sort=newest" />
+    <section id="san-pham-moi" aria-labelledby="new-heading" className="reveal scroll-mt-24 space-y-6">
+      <SectionHeading id="new-heading" title="Sản phẩm mới" href="/hang-moi-ve" />
       <div className={GRID}>
         {products.map((p) => (
           <ProductCard key={p.id} product={p} isNew />
@@ -70,7 +89,7 @@ export function ProductSectionSkeleton({ count = 4 }: { count?: number }) {
       <div className={GRID}>
         {Array.from({ length: count }, (_, i) => (
           <div key={i} className="space-y-3">
-            <Skeleton className="aspect-6/5 w-full" />
+            <Skeleton className="aspect-4/5 w-full" />
             <div className="space-y-2">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3.5 w-1/2" />

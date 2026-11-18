@@ -11,7 +11,7 @@ Nguyên tắc: **số liệu và quyết định dùng code + SQL; LLM chỉ di�
 | **Quy tắc phối đồ** | **Đã có** (2026-11-13): 35 đoạn trong `docs/ai/knowledge/styling.md` + 23 dịp chuẩn trong `occasions.md`; bản nháp dùng tạm, cần chủ cửa hàng duyệt | `KnowledgeChunk` loại `styling` qua vector + lọc metadata; Mix & Match chọn món bằng code (mục 4.1) | Nội dung do bạn duyệt |
 | **Kho hàng thực tế** | Có: `ProductVariant.stock`, `Product.isActive` | SQL lúc truy vấn (không embed) | Mọi gợi ý phải qua bước kiểm tồn kho |
 | **Mô tả sản phẩm** | Có, đã định hướng embed (`01-data-for-ai.md`) | Vector search sản phẩm | |
-| **Chính sách cửa hàng** (đổi trả, vận chuyển, thanh toán) | Một phần trong code: phí ship (`FREE_SHIPPING_THRESHOLD = 500_000`, `FLAT_SHIPPING_FEE = 30_000`, `src/lib/shipping.ts`), hạn thanh toán VNPay 15 phút (`PAYMENT_WINDOW_MINUTES`, `src/lib/order.ts`), gom thành trang chính sách ở `src/lib/policies.ts` (vận chuyển, thanh toán); **chính sách đổi trả và bảo mật CHƯA CÓ** (đang để "đang cập nhật") | `KnowledgeChunk` loại `policy` | Chỉ trả lời điều đã có trong tài liệu |
+| **Chính sách cửa hàng** (đổi trả, vận chuyển, thanh toán) | Một phần trong code: phí ship (đọc từ cấu hình Admin `ShopSettings`, mặc định 500.000 đ miễn phí và 30.000 đ đồng giá, `src/lib/shipping.ts`; freeship còn khác theo hạng thành viên), hạn thanh toán VNPay 15 phút (`PAYMENT_WINDOW_MINUTES`, `src/lib/order.ts`), gom thành trang chính sách ở `src/lib/policies.ts` (vận chuyển, thanh toán); **chính sách đổi trả và bảo mật CHƯA CÓ** (đang để "đang cập nhật") | `KnowledgeChunk` loại `policy` | Chỉ trả lời điều đã có trong tài liệu |
 
 ### Bảng chunk kiến thức (ĐÃ CÓ từ 2026-11-13)
 > Bản đã làm khác mẫu dưới đây: `embedding` là `vector(1024)` (bge-m3), khoá tự nhiên `(source, title)` thay cho `id` tự sinh, có cột `source` (tên file nguồn), không có `templateVersion` riêng theo `model` mà dùng hằng `KNOWLEDGE_TEMPLATE_VERSION`, không có chỉ mục vector (94 đoạn quét tuần tự đủ nhanh). Xem `prisma/schema.prisma`, `src/server/ai/advisor/knowledge-*.ts` và ngưỡng truy xuất 0,45 trong `knowledge.service.ts`.
@@ -194,7 +194,7 @@ Khi dùng structured output của SDK, validate lại bằng cùng schema ở se
 
 ## 8. UI hiển thị (đã chốt bản phác)
 
-Bản phác đã duyệt: khung chat trợ lý, kết quả của Advisor hiện bằng **thẻ** nằm trong luồng chat; chữ của LLM đi kèm phía trên thẻ. Giao diện đã dựng theo bản phác (xem thử ở `/dev/assistant`; nút chỉ hiện khi `AI_ENABLED=true` và cần đăng nhập). Chưa có thiết kế Figma, nên bản phác này là tham chiếu; dùng design token hiện có trong `src/app/globals.css` (`--brand` `#e61e4d`, `--background` `#f8f9fa`, `--ink` `#0f172a`, `--border` `#e2e8f0`, `--success` `#059669`, `--radius` 0.5rem). Khi có Figma thì Figma thắng.
+Bản phác đã duyệt: khung chat trợ lý, kết quả của Advisor hiện bằng **thẻ** nằm trong luồng chat; chữ của LLM đi kèm phía trên thẻ. Giao diện đã dựng theo bản phác (xem thử ở `/dev/assistant`; nút chỉ hiện khi `AI_ENABLED=true` và cần đăng nhập). Bản phác này là tham chiếu; dùng design token hiện có trong `src/app/globals.css` (hệ thống "Ấm áp tinh tế"), không viết mã màu cứng.
 
 | Trạng thái / đầu ra | Thẻ | Nội dung chính |
 |---|---|---|

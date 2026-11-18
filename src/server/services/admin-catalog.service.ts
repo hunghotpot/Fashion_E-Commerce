@@ -27,6 +27,9 @@ export type AdminCatalogErrorCode =
   | "PRODUCT_HAS_ORDERS"
   | "NEGATIVE_STOCK"
   | "SIZE_CHART_ROW_NOT_FOUND"
+  | "VOUCHER_NOT_FOUND"
+  | "VOUCHER_DUPLICATE_CODE"
+  | "VOUCHER_IN_USE"
 
 export interface AdminCatalogIssue {
   /** Đường dẫn tới trường lỗi, ví dụ ["variants", 0, "sku"]. */

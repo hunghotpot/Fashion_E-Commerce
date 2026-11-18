@@ -30,9 +30,9 @@ export function ConfirmCard({
   const resolved = resolvedProp ?? local
 
   return (
-    <section aria-label="Xác nhận" className="space-y-3 rounded-2xl border border-primary bg-white p-4">
+    <section aria-label="Xác nhận" className="space-y-3 rounded-2xl border border-primary bg-card p-4">
       <div>
-        <p className="text-sm font-bold">{data.title}</p>
+        <p className="text-sm font-semibold">{data.title}</p>
         <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
           {data.lines.map((l) => (
             <li key={l}>{l}</li>
@@ -44,7 +44,7 @@ export function ConfirmCard({
       </div>
 
       {resolved ? (
-        <p role="status" className="text-label font-bold text-muted-foreground">
+        <p role="status" className="text-label font-semibold text-muted-foreground">
           {RESOLVED_LABEL[resolved]}
         </p>
       ) : (

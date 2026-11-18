@@ -9,6 +9,16 @@ export const SUPPORTED_PAYMENT_METHODS: readonly CheckoutPaymentMethod[] = ["COD
 /** Đơn VNPAY chưa thanh toán sau chừng này phút sẽ bị huỷ và hoàn tồn kho (cũng là hạn của link thanh toán). */
 export const PAYMENT_WINDOW_MINUTES = 15
 
+/** Đơn chuyển khoản chưa được xác nhận đã nhận tiền sau chừng này giờ sẽ bị huỷ và hoàn tồn kho. */
+export const BANK_TRANSFER_WINDOW_HOURS = 24
+
+/** Hạn thanh toán của đơn chưa trả tiền: VNPAY 15 phút, chuyển khoản 24 giờ, phương thức khác không có hạn (null). */
+export function paymentDeadline(method: string, createdAt: Date): Date | null {
+  if (method === "VNPAY") return new Date(createdAt.getTime() + PAYMENT_WINDOW_MINUTES * 60_000)
+  if (method === "BANK_TRANSFER") return new Date(createdAt.getTime() + BANK_TRANSFER_WINDOW_HOURS * 3_600_000)
+  return null
+}
+
 export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   COD: "Thanh toán khi nhận hàng (COD)",
   BANK_TRANSFER: "Chuyển khoản Ngân hàng / VietQR",

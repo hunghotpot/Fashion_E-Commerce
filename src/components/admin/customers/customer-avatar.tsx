@@ -1,7 +1,7 @@
-import { cn } from "cn"
-import type { CustomerTier } from "@/lib/customer-tier"
+import { cn } from "@/lib/cn"
+import { CUSTOMER_TIER_STYLE, type CustomerTier } from "@/lib/customer-tier"
 
-/** Avatar chữ cái đầu (Figma): VIP nền ink, khách bị khóa nền brand nhạt, còn lại nền xám. */
+/** Avatar chữ cái đầu: màu theo hạng (CUSTOMER_TIER_STYLE), khách bị khóa nền đỏ nhạt. */
 export function CustomerAvatar({
   initial,
   tier,
@@ -17,8 +17,8 @@ export function CustomerAvatar({
     <span
       aria-hidden
       className={cn(
-        "grid size-12 shrink-0 place-items-center rounded-full text-sm font-bold",
-        locked ? "bg-brand-soft text-brand" : tier === "VIP" ? "bg-ink text-white" : "bg-secondary text-muted-foreground",
+        "grid size-12 shrink-0 place-items-center rounded-full text-sm font-semibold",
+        locked ? "bg-destructive-soft text-destructive" : CUSTOMER_TIER_STYLE[tier].chip,
         className
       )}
     >

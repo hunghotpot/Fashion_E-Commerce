@@ -1,6 +1,6 @@
 ﻿const vnNumber = new Intl.NumberFormat("vi-VN")
 
-/** 2800000 → "2.800.000 đ" (đúng dạng hiển thị trong Figma). */
+/** 2800000 → "2.800.000 đ" (dạng hiển thị tiền VND trên toàn site). */
 export function formatVnd(amount: number): string {
   return `${vnNumber.format(amount)} đ`
 }

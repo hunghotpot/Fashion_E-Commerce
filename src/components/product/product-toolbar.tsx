@@ -34,7 +34,7 @@ export function SortSelect() {
       value={filters.sort}
       onValueChange={(v) => update({ sort: v as ProductSort })}
     >
-      <SelectTrigger size="sm" aria-label="Sắp xếp" className="w-44 rounded-full bg-white">
+      <SelectTrigger size="sm" aria-label="Sắp xếp" className="w-44 rounded-none bg-white">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

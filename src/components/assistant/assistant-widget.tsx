@@ -45,7 +45,7 @@ function describe(m: Partial<Record<MeasureField, number>>): string {
 }
 
 // Nút tròn ở góc phải dưới; bấm thì mở ô chat chữ nhật đứng ngay phía trên (mobile: toàn màn hình).
-// Màu xám đen (slate-700) cho bớt nổi so với màu thương hiệu và khác màu footer (bg-ink) để không chìm khi cuộn xuống cuối trang. Tư vấn size chạy thật qua server action (tính bằng code, không LLM);
+// Màu brand (vàng đồng) để khác màu footer (bg-ink), không chìm khi cuộn xuống cuối trang. Tư vấn size chạy thật qua server action (tính bằng code, không LLM);
 // câu hỏi khác gửi tới /api/ai/chat qua useAssistantChat (có tool và kho kiến thức, xem docs/ai/00-overview.md).
 // Đóng ô chat không xoá hội thoại.
 export function AssistantWidget() {
@@ -69,7 +69,7 @@ export function AssistantWidget() {
   if (!enabled) return null
 
   const fabClass =
-    "fixed right-4 bottom-4 z-40 grid size-14 place-items-center rounded-full bg-slate-700 text-white shadow-float ring-1 ring-white/30 outline-none transition-transform hover:scale-105 focus-visible:ring-3 focus-visible:ring-ring/40 sm:right-6 sm:bottom-6"
+    "fixed right-4 bottom-4 z-40 grid size-12 place-items-center rounded-full bg-brand text-primary-foreground shadow-float ring-1 ring-white/30 outline-none transition-transform hover:scale-105 focus-visible:ring-3 focus-visible:ring-ring/40 sm:size-14 sm:right-6 sm:bottom-6"
 
   // Khách chưa đăng nhập: nút dẫn sang trang đăng nhập rồi quay lại trang hiện tại.
   if (!authenticated) {
@@ -135,14 +135,14 @@ export function AssistantWidget() {
         <div
           role="dialog"
           aria-label="Trợ lý mua sắm"
-          className="fixed inset-0 z-50 flex animate-in flex-col overflow-hidden bg-white duration-200 fade-in-0 slide-in-from-bottom-4 sm:inset-auto sm:right-6 sm:bottom-24 sm:h-[min(560px,calc(100dvh-8rem))] sm:w-[380px] sm:rounded-2xl sm:border sm:border-border sm:shadow-modal"
+          className="fixed inset-0 z-50 flex animate-in flex-col overflow-hidden bg-card duration-200 fade-in-0 slide-in-from-bottom-4 sm:inset-auto sm:right-6 sm:bottom-24 sm:h-[min(560px,calc(100dvh-8rem))] sm:w-[380px] sm:rounded-2xl sm:border sm:border-border sm:shadow-modal"
         >
           <header className="flex items-center gap-3 bg-ink px-4 py-3 text-white">
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/15">
               <SparklesIcon className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm leading-tight font-bold">Trợ lý mua sắm</p>
+              <p className="font-heading text-lg leading-tight font-semibold">Trợ lý mua sắm</p>
               <p className="truncate text-2xs text-white/70">
                 {product ? `Đang xem: ${product.name}` : "Hỏi về size, phối đồ và chăm sóc quần áo"}
               </p>

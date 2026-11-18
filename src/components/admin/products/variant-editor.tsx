@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { emptyGroup, emptyRow, totalStock, type ColorGroupState } from "./product-form-state"
 
 /*
- * Bảng "Phân loại Kích cỡ (Size) & Tồn kho ban đầu" (Figma), gom theo màu: mỗi màu có tên + ô chọn mã màu và các dòng size/tồn.
+ * Bảng "Phân loại Kích cỡ (Size) & Tồn kho ban đầu", gom theo màu: mỗi màu có tên + ô chọn mã màu và các dòng size/tồn.
  * `errors` là bản đồ "variants.<i>.<trường>" → thông báo, với <i> là chỉ số trong dãy biến thể phẳng theo thứ tự hiển thị.
  */
 export function VariantEditor({
@@ -76,7 +76,7 @@ export function VariantEditor({
               </p>
             )}
 
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] gap-x-3 gap-y-2 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] gap-x-3 gap-y-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               <span>Size</span>
               <span>Số lượng trong kho</span>
               <span className="text-right">Xóa</span>
@@ -147,7 +147,7 @@ export function VariantEditor({
         <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => onChange([...groups, emptyGroup()])}>
           <PlusIcon aria-hidden /> Thêm màu
         </Button>
-        <p className="text-label font-bold">
+        <p className="text-label font-semibold">
           Tổng cộng: <span className="text-brand">{totalStock(groups).toLocaleString("vi-VN")} cái</span>
         </p>
       </div>

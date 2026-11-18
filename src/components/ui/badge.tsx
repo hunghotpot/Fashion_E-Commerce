@@ -1,21 +1,22 @@
 ﻿import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 
 /*
- * Two shapes in Figma:
+ * Two shapes:
  *  - tag  (rounded-sm, solid) — product "NEW" / "-20%"
  *  - pill (rounded-full, soft tint) — order/stock status, stat delta
  */
 const badgeVariants = cva(
-  "group/badge inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden border border-transparent font-bold whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:ring-ring/25 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden border border-transparent font-semibold whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:ring-ring/25 [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
         // soft pills
         default: "bg-secondary text-sidebar-foreground",
         brand: "bg-brand-soft text-primary",
+        danger: "bg-destructive-soft text-destructive",
         success: "bg-success-soft text-success",
         warning: "bg-warning-soft text-warning",
         info: "bg-info-soft text-info",
@@ -25,8 +26,8 @@ const badgeVariants = cva(
         outline: "border-border bg-transparent text-foreground",
       },
       shape: {
-        pill: "h-6 rounded-full px-3 text-[11px] leading-[1.4]",
-        tag: "h-[21px] rounded-sm px-2.5 text-[10px] leading-[1.4]",
+        pill: "h-6 rounded-none px-3 text-[length:var(--text-caption)] leading-[1.4]",
+        tag: "h-[21px] rounded-sm px-2.5 text-[length:var(--text-2xs)] leading-[1.4]",
       },
     },
     defaultVariants: {

@@ -1,18 +1,19 @@
 "use client"
 
-import { NotConnectedButton } from "@/components/admin/placeholder/not-connected-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-/* Thanh tab + nút "Lưu Cấu Hình" (Figma 06). Nội dung từng tab là Server Component truyền vào qua props. */
+/* Thanh tab (nút Lưu nằm trong từng biểu mẫu). Nội dung từng tab là Server Component truyền vào qua props. */
 export function SettingsTabs({
   store,
   payment,
   shipping,
+  tiers,
   admins,
 }: {
   store: React.ReactNode
   payment: React.ReactNode
   shipping: React.ReactNode
+  tiers: React.ReactNode
   admins: React.ReactNode
 }) {
   return (
@@ -28,11 +29,13 @@ export function SettingsTabs({
           <TabsTrigger value="shipping" className="h-9 flex-none">
             Vận chuyển & Kho
           </TabsTrigger>
+          <TabsTrigger value="tiers" className="h-9 flex-none">
+            Hạng thành viên
+          </TabsTrigger>
           <TabsTrigger value="admins" className="h-9 flex-none">
             Phân quyền Admin
           </TabsTrigger>
         </TabsList>
-        <NotConnectedButton size="md">Lưu Cấu Hình</NotConnectedButton>
       </div>
       <TabsContent value="store" className="space-y-4">
         {store}
@@ -42,6 +45,9 @@ export function SettingsTabs({
       </TabsContent>
       <TabsContent value="shipping" className="space-y-4">
         {shipping}
+      </TabsContent>
+      <TabsContent value="tiers" className="space-y-4">
+        {tiers}
       </TabsContent>
       <TabsContent value="admins" className="space-y-4">
         {admins}

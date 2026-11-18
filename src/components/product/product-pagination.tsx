@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { serializeProductFilters, type ProductFilters } from "@/lib/validators/product-filter"
 
 // Server component: mỗi trang là một <Link> thật (crawl được, mở tab mới được).
@@ -31,7 +31,7 @@ export function ProductPagination({
     const qs = serializeProductFilters({ ...filters, page }, { omitCategory: lockedCategory }).toString()
     return qs ? `${basePath}?${qs}` : basePath
   }
-  const base = "grid size-10 place-items-center rounded-full text-sm font-bold transition-colors"
+  const base = "grid size-10 pointer-coarse:size-11 place-items-center rounded-none text-sm font-semibold transition-colors"
 
   return (
     <nav aria-label="Phân trang" className="mt-10 flex items-center justify-center gap-1.5">

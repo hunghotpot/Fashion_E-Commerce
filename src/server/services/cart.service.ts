@@ -160,6 +160,17 @@ export async function getCart(ctx: CartContext): Promise<CartView> {
   return loadView(cart?.id ?? null)
 }
 
+/**
+ * "Giỏ" một dòng cho luồng Mua ngay (trang thanh toán hiển thị): không đọc và không ghi giỏ thật.
+ * Biến thể không tồn tại thì null. Số lượng không bị kẹp theo kho: thiếu hàng hiện thành cảnh báo trên dòng, đặt đơn sẽ báo lỗi rõ.
+ */
+export async function getBuyNowCart(variantId: string, quantity: number): Promise<CartView | null> {
+  assertQuantity(quantity, 1)
+  const v = await db.productVariant.findUnique({ where: { id: variantId }, select: itemSelect.variant.select })
+  if (!v) return null
+  return summarizeCart([toLine({ quantity, priceAtAdd: null, variant: v })])
+}
+
 /** Thêm `quantity` vào dòng của biến thể (cộng dồn); tổng không được vượt tồn kho. */
 export async function addItem(ctx: CartContext, variantId: string, quantity: number): Promise<CartView> {
   assertQuantity(quantity, 1)

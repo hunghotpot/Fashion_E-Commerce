@@ -128,6 +128,9 @@ export async function deleteCategory(admin: AdminContext, id: string): Promise<v
         throw new AdminCatalogError("CATEGORY_HAS_CHILDREN", `Không thể xoá "${c.name}": còn ${c._count.children} danh mục con. Hãy xoá hoặc chuyển danh mục con trước.`)
       if (c._count.products > 0)
         throw new AdminCatalogError("CATEGORY_HAS_PRODUCTS", `Không thể xoá "${c.name}": còn ${c._count.products} sản phẩm. Hãy chuyển sản phẩm sang danh mục khác trước.`)
+      const vouchers = await tx.voucher.count({ where: { categoryId: cid } })
+      if (vouchers > 0)
+        throw new AdminCatalogError("CATEGORY_HAS_PRODUCTS", `Không thể xoá "${c.name}": còn ${vouchers} voucher áp dụng riêng cho danh mục này. Hãy xoá hoặc sửa voucher trước.`)
       await tx.category.delete({ where: { id: cid } })
     })
   } catch (e) {

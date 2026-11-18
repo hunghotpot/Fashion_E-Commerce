@@ -22,13 +22,13 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   return (
     <>
       <nav aria-label="Breadcrumb" className="mb-3 text-xs text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">
+        <Link href="/" className="inline-block py-2 hover:text-foreground">
           Trang chủ
         </Link>
         {category.parent && (
           <>
             {" / "}
-            <Link href={`/categories/${category.parent.slug}`} className="hover:text-foreground">
+            <Link href={`/categories/${category.parent.slug}`} className="inline-block py-2 hover:text-foreground">
               {category.parent.name}
             </Link>
           </>
@@ -36,7 +36,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         {" / "}
         <span className="text-foreground">{category.name}</span>
       </nav>
-      <h1 className="text-3xl font-bold">{category.name}</h1>
+      <h1 className="text-4xl font-semibold">{category.name}</h1>
       {category.description && <p className="mt-2 max-w-2xl text-label text-muted-foreground">{category.description}</p>}
       {category.children.length > 0 && (
         <ul className="mt-4 flex flex-wrap gap-2">
@@ -44,7 +44,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
             <li key={c.id}>
               <Link
                 href={`/categories/${c.slug}`}
-                className="inline-flex h-9 items-center rounded-full bg-secondary px-4 text-label font-bold hover:bg-border"
+                className="inline-flex h-9 items-center rounded-none bg-secondary px-4 text-label font-semibold hover:bg-border"
               >
                 {c.name}
               </Link>

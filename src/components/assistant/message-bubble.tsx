@@ -1,4 +1,4 @@
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { ConfirmCard } from "@/components/assistant/confirm-card"
 import { NoticeCard } from "@/components/assistant/notice-card"
 import { OutfitCard } from "@/components/assistant/outfit-card"
@@ -39,7 +39,7 @@ function Part({ part, actions, plain }: { part: MessagePart; actions: AssistantA
             ? part.text
             : splitBold(part.text).map((s, i) =>
                 s.bold ? (
-                  <strong key={i} className="font-bold">
+                  <strong key={i} className="font-semibold">
                     {s.text}
                   </strong>
                 ) : (
@@ -83,7 +83,7 @@ export function MessageBubble({ message, actions = {}, animate = false }: { mess
               key={key}
               className={cn(
                 "max-w-[88%] rounded-2xl px-3.5 py-2 text-label",
-                isUser ? "rounded-br-sm bg-ink text-white" : "rounded-bl-sm border border-border bg-white",
+                isUser ? "rounded-br-sm bg-ink text-white" : "rounded-bl-sm border border-border bg-card",
                 animate &&
                   cn(
                     "animate-in fade-in zoom-in-90 slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none",

@@ -268,6 +268,31 @@ describe("sửa sản phẩm", () => {
     expect(hook).toHaveBeenCalledTimes(1)
   })
 
+  it("sửa tay tồn kho trong form: báo sắp hết hàng khi vừa tụt xuống ngưỡng, không báo khi đã dưới ngưỡng hoặc tăng", async () => {
+    const p = await createProduct(admin, form())
+    const m = p.variants.find((v) => v.color === "Đen" && v.size === "M")! // tồn 20
+    const l = p.variants.find((v) => v.color === "Đen" && v.size === "L")! // tồn 5 (đã dưới ngưỡng)
+    const w = p.variants.find((v) => v.color === "Trắng")! // tồn 0
+    const stockNotes = () => db.adminNotification.findMany({ where: { category: "STOCK", title: { contains: p.name } } })
+    const save = (stocks: [number, number, number]) =>
+      updateProduct(admin, p.id, {
+        ...form({ name: p.name }),
+        skuPrefix: undefined,
+        variants: [m, l, w].map((v, i) => ({ id: v.id, sku: v.sku, size: v.size, color: v.color, colorHex: v.colorHex, price: v.price, stock: stocks[i] })),
+      })
+    try {
+      await save([20, 3, 9]) // 5 -> 3 (đã dưới ngưỡng), 0 -> 9 (tăng): không báo
+      expect(await stockNotes()).toHaveLength(0)
+      await save([4, 3, 9]) // 20 -> 4: vừa tụt xuống ngưỡng
+      const rows = await stockNotes()
+      expect(rows).toHaveLength(1)
+      expect(rows[0].title).toBe(`Sắp hết hàng: ${p.name}`)
+      expect(rows[0].body).toContain("còn 4 sản phẩm")
+    } finally {
+      await db.adminNotification.deleteMany({ where: { category: "STOCK", title: { contains: p.name } } })
+    }
+  })
+
   it("lỗi giữa chừng thì rollback toàn bộ (SKU trùng sản phẩm khác)", async () => {
     const other = await createProduct(admin, form())
     const p = await createProduct(admin, form())

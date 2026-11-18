@@ -2,13 +2,13 @@
 
 import { useRef, useState } from "react"
 import { ImagePlusIcon, XIcon } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 
 const ACCEPT = "image/jpeg,image/png,image/webp"
 const MAX_MB = 5
 
 /*
- * Ô "Hình ảnh sản phẩm" (Figma): khung nét đứt "Tải lên từ máy tính (Tối đa N ảnh)", ảnh đã tải hiện thành ô nhỏ có nút xoá.
+ * Ô "Hình ảnh sản phẩm": khung nét đứt "Tải lên từ máy tính (Tối đa N ảnh)", ảnh đã tải hiện thành ô nhỏ có nút xoá.
  * Tải lên qua POST /api/admin/uploads (server kiểm quyền, loại file thật, dung lượng và tự đặt tên); component chỉ giữ danh sách URL.
  * Kiểm tra ở client (loại, dung lượng, số lượng) chỉ để báo lỗi sớm: server luôn kiểm lại.
  */
@@ -65,7 +65,7 @@ export function ImageUploader({
             <li key={url} className="relative size-20 overflow-hidden rounded-xl border border-border bg-secondary">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={url} alt={`Ảnh sản phẩm ${i + 1}`} className="size-full object-cover" />
-              {i === 0 && <span className="absolute bottom-0 left-0 rounded-tr-lg bg-ink px-1.5 py-0.5 text-2xs font-bold text-white">Ảnh chính</span>}
+              {i === 0 && <span className="absolute bottom-0 left-0 rounded-tr-lg bg-ink px-1.5 py-0.5 text-2xs font-semibold text-white">Ảnh chính</span>}
               <button
                 type="button"
                 disabled={disabled || uploading}
@@ -86,7 +86,7 @@ export function ImageUploader({
         disabled={disabled || uploading || remaining <= 0}
         onClick={() => input.current?.click()}
         className={cn(
-          "flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface px-4 text-label font-bold text-sidebar-foreground transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface px-4 text-label font-semibold text-sidebar-foreground transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50",
           shown && "border-destructive"
         )}
       >

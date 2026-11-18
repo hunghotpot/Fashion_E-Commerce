@@ -31,9 +31,9 @@ export function OutfitCard({
     .join(" · ")
 
   return (
-    <article aria-label={`Bộ đồ ${data.title}`} className="space-y-3 rounded-2xl border border-border bg-white p-4">
+    <article aria-label={`Bộ đồ ${data.title}`} className="space-y-3 rounded-2xl border border-border bg-card p-4">
       <div>
-        <h3 className="text-sm font-bold">{data.title}</h3>
+        <h3 className="text-sm font-semibold">{data.title}</h3>
         {meta && <p className="text-xs text-muted-foreground">{meta}</p>}
       </div>
 
@@ -53,13 +53,13 @@ export function OutfitCard({
             </Link>
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">{SLOT_LABEL[item.slot]}</p>
-              <Link href={`/products/${item.slug}`} className="line-clamp-2 text-label font-bold hover:text-primary">
+              <Link href={`/products/${item.slug}`} className="line-clamp-2 text-label font-semibold hover:text-primary">
                 {item.name}
               </Link>
               <p className="text-xs text-muted-foreground">{item.variantLabel}</p>
               {showReasons && item.reason && <p className="mt-1 text-xs text-foreground">{item.reason}</p>}
             </div>
-            <span className="text-label font-bold whitespace-nowrap">{formatVnd(item.price)}</span>
+            <span className="text-label font-semibold whitespace-nowrap">{formatVnd(item.price)}</span>
           </li>
         ))}
       </ul>
@@ -74,7 +74,7 @@ export function OutfitCard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs text-muted-foreground">Tổng cộng</p>
-          <p className="text-base font-bold text-primary">{formatVnd(data.totalPrice)}</p>
+          <p className="text-base font-semibold text-primary">{formatVnd(data.totalPrice)}</p>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" aria-pressed={showReasons} onClick={() => setShowReasons((v) => !v)}>

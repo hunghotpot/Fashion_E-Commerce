@@ -6,11 +6,13 @@ import { CancelOrderButton } from "@/components/orders/cancel-order-button"
 import { OrderStatusPill } from "@/components/orders/order-status-pill"
 import { OrderTimeline } from "@/components/orders/order-timeline"
 import { ReorderButton } from "@/components/orders/reorder-button"
+import { buttonVariants } from "@/components/ui/button"
 import { formatDateTime, formatVnd } from "@/lib/format"
-import { PAYMENT_METHOD_LABEL } from "@/lib/order"
+import { PAYMENT_METHOD_LABEL, paymentDeadline } from "@/lib/order"
 import { buildTimeline, canCancelStatus } from "@/lib/order-timeline"
 import { requireUser } from "@/server/auth/session"
 import { getOrderDetail } from "@/server/services/order.service"
+import { expireUnpaidOrders } from "@/server/services/payment.service"
 
 export const metadata: Metadata = { title: "Chi tiết đơn hàng", robots: { index: false } }
 
@@ -25,8 +27,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const { id } = await params
   const user = await requireUser(`/account/orders/${id}`)
   // Quyền nằm ở service: đơn của người khác trả về null → 404 (không lộ sự tồn tại của đơn).
+  await expireUnpaidOrders() // dọn đơn quá hạn thanh toán trước khi hiển thị, phòng khi cron chưa chạy
   const order = await getOrderDetail(user.id, id)
   if (!order) notFound()
+  const awaitingTransfer = order.paymentMethod === "BANK_TRANSFER" && order.paymentStatus === "PENDING" && order.status !== "CANCELLED"
+  const transferDeadline = awaitingTransfer ? paymentDeadline("BANK_TRANSFER", order.createdAt) : null
 
   const steps = buildTimeline(order.status, order.history)
   const a = order.shippingAddress
@@ -38,19 +43,19 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     <div className="space-y-6 pb-16">
       <div>
         <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
-          <Link href="/" className="hover:text-foreground">
+          <Link href="/" className="inline-block py-2 hover:text-foreground">
             Trang chủ
           </Link>
           {" / "}
-          <Link href="/account/profile" className="hover:text-foreground">
+          <Link href="/account/profile" className="inline-block py-2 hover:text-foreground">
             Tài khoản
           </Link>
           {" / "}
-          <span className="font-bold text-foreground">Lịch sử &amp; Theo dõi đơn hàng</span>
+          <span className="font-semibold text-foreground">Lịch sử &amp; Theo dõi đơn hàng</span>
         </nav>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold">Lịch Sử &amp; Theo Dõi Đơn Hàng</h1>
-          <p className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-2 text-xs font-bold text-sidebar-foreground">
+          <h1 className="text-4xl font-semibold">Lịch Sử &amp; Theo Dõi Đơn Hàng</h1>
+          <p className="flex items-center gap-2 rounded-none border border-border bg-secondary/50 px-4 py-2 text-xs font-semibold text-sidebar-foreground">
             <span aria-hidden className="size-2 rounded-full bg-success" />
             Chủ đơn: <span className="text-foreground">{user.name}</span>
           </p>
@@ -59,32 +64,46 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
       <article className="overflow-hidden rounded-2xl border border-border bg-card">
         <header className="flex flex-wrap items-center gap-x-6 gap-y-2 bg-surface px-6 py-4">
-          <h2 className="text-nav font-bold">MÃ ĐƠN HÀNG: #{order.code}</h2>
+          <h2 className="font-sans text-nav font-semibold">MÃ ĐƠN HÀNG: #{order.code}</h2>
           <p className="text-label text-muted-foreground">Ngày đặt: {formatDateTime(order.createdAt)}</p>
           <OrderStatusPill status={order.status} uppercase className="ml-auto" />
         </header>
 
         <div className="space-y-8 p-6 sm:p-8">
+          {awaitingTransfer && transferDeadline && (
+            <div role="status" className="flex flex-wrap items-center justify-between gap-4 border border-warning/40 bg-warning-soft p-4 text-label">
+              <div className="space-y-1">
+                <p className="font-semibold text-warning">Chờ cửa hàng xác nhận thanh toán</p>
+                <p className="text-sidebar-foreground">
+                  Cửa hàng sẽ xác nhận sau khi nhận được tiền chuyển khoản. Đơn sẽ tự huỷ nếu chưa xác nhận trước{" "}
+                  <b className="text-foreground">{formatDateTime(transferDeadline)}</b>.
+                </p>
+              </div>
+              <Link href={`/orders/${order.id}/payment`} className={buttonVariants({ variant: "dark", size: "md" })}>
+                Xem mã QR chuyển khoản
+              </Link>
+            </div>
+          )}
           <OrderTimeline steps={steps} />
 
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
             <section aria-labelledby="products-heading" className="space-y-4">
-              <h3 id="products-heading" className="text-nav font-bold">
+              <h3 id="products-heading" className="text-nav font-semibold">
                 DANH SÁCH SẢN PHẨM ({quantity} MÓN)
               </h3>
               <ul className="space-y-3">
                 {order.items.map((i, idx) => (
                   <li key={`${i.variantId ?? "x"}-${idx}`} className="flex gap-4 rounded-xl border border-border bg-surface p-4">
-                    <div className="relative size-16 shrink-0 overflow-hidden rounded-lg border border-border bg-white">
+                    <div className="relative size-16 shrink-0 overflow-hidden rounded-lg border border-border bg-card">
                       {i.image && <Image src={i.image.url} alt={i.image.alt} fill sizes="64px" className="object-cover" />}
                     </div>
                     <div className="min-w-0 flex-1 space-y-1">
                       {i.slug ? (
-                        <Link href={`/products/${i.slug}`} className="text-sm font-bold hover:text-primary">
+                        <Link href={`/products/${i.slug}`} className="text-sm font-semibold hover:text-primary">
                           {i.productName}
                         </Link>
                       ) : (
-                        <p className="text-sm font-bold">{i.productName}</p>
+                        <p className="text-sm font-semibold">{i.productName}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
                         Phân loại: <b className="text-foreground">Size {i.size} • Màu {i.color}</b>
@@ -94,12 +113,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <p className="text-sm font-bold">{formatVnd(i.unitPrice * i.quantity)}</p>
+                      <p className="text-sm font-semibold">{formatVnd(i.unitPrice * i.quantity)}</p>
                       <span
                         className={
                           i.inStock
-                            ? "rounded-md bg-success-soft px-2 py-1 text-2xs font-bold text-success"
-                            : "rounded-md bg-secondary px-2 py-1 text-2xs font-bold text-muted-foreground"
+                            ? "rounded-md bg-success-soft px-2 py-1 text-2xs font-semibold text-success"
+                            : "rounded-md bg-secondary px-2 py-1 text-2xs font-semibold text-muted-foreground"
                         }
                       >
                         {i.inStock ? "Còn hàng trong kho" : "Hết hàng"}
@@ -112,20 +131,20 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
             <div className="space-y-6">
               <section aria-labelledby="address-heading" className="space-y-4">
-                <h3 id="address-heading" className="text-nav font-bold">
+                <h3 id="address-heading" className="text-nav font-semibold">
                   ĐỊA CHỈ NHẬN HÀNG
                 </h3>
                 <div className="space-y-1.5 rounded-xl border border-border bg-surface p-4 text-label">
-                  <p className="font-bold">
+                  <p className="font-semibold">
                     {a.fullName} <span className="font-normal text-muted-foreground">({a.phone})</span>
                   </p>
-                  <p className="text-sidebar-foreground">{[a.street, a.ward, a.district, a.province].join(", ")}</p>
+                  <p className="text-sidebar-foreground">{[a.street, a.ward, a.province].join(", ")}</p>
                   {order.note && <p className="text-xs text-subtle-foreground">Ghi chú: {order.note}</p>}
                 </div>
               </section>
 
               <section aria-labelledby="payment-heading" className="space-y-4">
-                <h3 id="payment-heading" className="text-nav font-bold">
+                <h3 id="payment-heading" className="text-nav font-semibold">
                   CHI TIẾT THANH TOÁN
                 </h3>
                 <dl className="space-y-3 rounded-xl border border-border bg-surface p-4 text-label">
@@ -137,9 +156,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     value={order.shippingFee === 0 ? "Miễn phí" : formatVnd(order.shippingFee)}
                     valueClass={order.shippingFee === 0 ? "text-success" : ""}
                   />
+                  {order.discount > 0 && (
+                    <Row label={`Voucher giảm giá${order.voucherCode ? ` ${order.voucherCode}` : ""}:`} value={`-${formatVnd(order.discount)}`} valueClass="text-success" />
+                  )}
+                  {order.shippingDiscount > 0 && (
+                    <Row label={`Voucher vận chuyển${order.shippingVoucherCode ? ` ${order.shippingVoucherCode}` : ""}:`} value={`-${formatVnd(order.shippingDiscount)}`} valueClass="text-success" />
+                  )}
                   <div className="flex items-center justify-between gap-4 border-t border-border pt-3">
-                    <dt className="text-nav font-bold">Tổng thanh toán:</dt>
-                    <dd className="text-lg font-bold text-primary">{formatVnd(order.total)}</dd>
+                    <dt className="text-nav font-semibold">Tổng thanh toán:</dt>
+                    <dd className="text-lg font-semibold text-primary">{formatVnd(order.total)}</dd>
                   </div>
                 </dl>
               </section>
@@ -180,7 +205,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       </article>
 
       <p>
-        <Link href="/account/orders" className="text-sm font-bold hover:text-primary">
+        <Link href="/account/orders" className="text-sm font-semibold hover:text-primary">
           ← Quay lại danh sách đơn hàng
         </Link>
         {cancelled && <span className="sr-only"> (đơn đã hủy)</span>}
@@ -193,7 +218,7 @@ function Row({ label, value, valueClass = "" }: { label: string; value: string; 
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className={`text-right font-bold ${valueClass}`}>{value}</dd>
+      <dd className={`text-right font-semibold ${valueClass}`}>{value}</dd>
     </div>
   )
 }

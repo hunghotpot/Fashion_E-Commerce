@@ -1,10 +1,10 @@
 "use client"
 
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { CheckIcon, MinusIcon } from "lucide-react"
 
-// Figma (login "Ghi nhớ"): ~18px, radius 4–6, ink fill with white check when checked.
+// Login "Ghi nhớ": ~18px, radius 4–6, ink fill with white check when checked.
 function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
   return (
     <CheckboxPrimitive.Root

@@ -87,7 +87,7 @@ export function AssistantPanel({
         </div>
       </div>
 
-      <form onSubmit={submit} className="flex items-center gap-2 border-t border-border bg-white p-3">
+      <form onSubmit={submit} className="flex items-center gap-2 border-t border-border bg-card p-3">
         <Input
           value={text}
           onChange={(e) => setText(e.target.value)}

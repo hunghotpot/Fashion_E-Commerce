@@ -2,7 +2,7 @@ import "server-only"
 import bcrypt from "bcryptjs"
 import type { OrderStatus, Prisma, UserStatus } from "@prisma/client"
 import { startOfVnMonth } from "@/lib/admin-dates"
-import { customerTier, VIP_SPEND_THRESHOLD, type CustomerTier } from "@/lib/customer-tier"
+import { customerTier, type CustomerTier, type TierRules } from "@/lib/customer-tier"
 import {
   createCustomerSchema,
   customerIdSchema,
@@ -11,12 +11,14 @@ import {
   type CustomerListFilterInput,
 } from "@/lib/validators/admin-customer"
 import { db } from "@/server/db"
+import { customerIdFilterForTier, getCustomerSpendMap } from "@/server/services/customer-spend"
+import { getShopSettings } from "@/server/services/shop-settings.service"
 
 /*
  * Nghiệp vụ Admin → Khách hàng. Không đọc cookie và không tự kiểm quyền: Server Action/route phải gọi requireAdmin()
  * rồi truyền `admin: { userId }` vào.
  *
- * "Số đơn" và "tổng chi tiêu" chỉ tính các đơn KHÔNG bị huỷ (status != CANCELLED). Hạng VIP/Thành viên suy ra từ
+ * "Số đơn" tính các đơn KHÔNG bị huỷ (status != CANCELLED); "tổng chi tiêu" chỉ tính đơn đã thanh toán hoặc đã giao. Hạng suy ra từ
  * tổng chi tiêu (xem src/lib/customer-tier.ts), không lưu trong DB.
  */
 
@@ -54,7 +56,7 @@ export interface CustomerListItem {
   phone: string | null
   tier: CustomerTier
   orderCount: number
-  /** VND, chỉ đơn không huỷ. */
+  /** VND, chỉ đơn đã thanh toán hoặc đã giao. */
   totalSpend: number
   status: UserStatus
   createdAt: Date
@@ -72,7 +74,8 @@ export interface CustomerSummary {
   totalCustomers: number
   /** Khách đăng ký từ đầu tháng này (giờ VN). */
   newThisMonth: number
-  vipCount: number
+  /** Số khách từ hạng Vàng trở lên. */
+  goldPlusCount: number
   /** Khách có ≥ 2 đơn không huỷ / khách có ≥ 1 đơn không huỷ, tính theo %, làm tròn 1 chữ số. 0 nếu chưa ai mua. */
   repurchaseRate: number
 }
@@ -84,7 +87,6 @@ export interface CustomerDetail extends CustomerListItem {
     phone: string
     street: string
     ward: string
-    district: string
     province: string
     isDefault: boolean
   }[]
@@ -98,6 +100,7 @@ export interface CustomerDetail extends CustomerListItem {
 }
 
 function toListItem(
+  tiers: TierRules,
   u: { id: string; name: string; email: string; phone: string | null; status: UserStatus; createdAt: Date },
   stats: { orderCount: number; totalSpend: number } | undefined
 ): CustomerListItem {
@@ -108,7 +111,7 @@ function toListItem(
     initial: u.name.trim().charAt(0).toUpperCase(),
     email: u.email,
     phone: u.phone,
-    tier: customerTier(totalSpend),
+    tier: customerTier(totalSpend, tiers),
     orderCount: stats?.orderCount ?? 0,
     totalSpend,
     status: u.status,
@@ -116,38 +119,28 @@ function toListItem(
   }
 }
 
-/** Số đơn + tổng chi tiêu (đơn không huỷ) cho đúng nhóm user — một câu truy vấn gom, không N+1. */
+/** Số đơn (không huỷ) + tổng chi tiêu (đã thanh toán/đã giao) cho đúng nhóm user: hai câu truy vấn gom, không N+1. */
 async function orderStatsFor(userIds: string[]): Promise<Map<string, { orderCount: number; totalSpend: number }>> {
   const map = new Map<string, { orderCount: number; totalSpend: number }>()
   if (userIds.length === 0) return map
-  const rows = await db.order.groupBy({
-    by: ["userId"],
-    where: { userId: { in: userIds }, status: NOT_CANCELLED },
-    _count: { _all: true },
-    _sum: { total: true },
-  })
-  for (const r of rows) map.set(r.userId, { orderCount: r._count._all, totalSpend: r._sum.total ?? 0 })
+  const [counts, spend] = await Promise.all([
+    db.order.groupBy({ by: ["userId"], where: { userId: { in: userIds }, status: NOT_CANCELLED }, _count: { _all: true } }),
+    getCustomerSpendMap(userIds),
+  ])
+  for (const r of counts) map.set(r.userId, { orderCount: r._count._all, totalSpend: spend.get(r.userId) ?? 0 })
+  for (const [userId, totalSpend] of spend) if (!map.has(userId)) map.set(userId, { orderCount: 0, totalSpend })
   return map
-}
-
-/** Id khách có tổng chi tiêu ≥ ngưỡng VIP (nhóm nhỏ nên đưa vào mệnh đề in/notIn được). */
-async function vipCustomerIds(): Promise<string[]> {
-  const rows = await db.order.groupBy({
-    by: ["userId"],
-    where: { status: NOT_CANCELLED, user: { role: "CUSTOMER" } },
-    _sum: { total: true },
-    having: { total: { _sum: { gte: VIP_SPEND_THRESHOLD } } },
-  })
-  return rows.map((r) => r.userId)
 }
 
 export async function listCustomers(input: CustomerListFilterInput = {}): Promise<CustomerListResult> {
   const { filter, q, page, pageSize } = customerListFilterSchema.parse(input)
+  const { tiers } = await getShopSettings()
 
   const where: Prisma.UserWhereInput = { role: "CUSTOMER" }
   if (filter === "locked") where.status = "LOCKED"
-  if (filter === "vip") where.id = { in: await vipCustomerIds() }
-  if (filter === "member") where.id = { notIn: await vipCustomerIds() }
+  if (filter === "member" || filter === "silver" || filter === "gold" || filter === "diamond") {
+    Object.assign(where, await customerIdFilterForTier(filter.toUpperCase() as CustomerTier))
+  }
   if (q) {
     where.OR = [
       { name: { contains: q, mode: "insensitive" } },
@@ -169,7 +162,7 @@ export async function listCustomers(input: CustomerListFilterInput = {}): Promis
   const stats = await orderStatsFor(users.map((u) => u.id))
 
   return {
-    items: users.map((u) => toListItem(u, stats.get(u.id))),
+    items: users.map((u) => toListItem(tiers, u, stats.get(u.id))),
     total,
     page,
     pageSize,
@@ -179,26 +172,28 @@ export async function listCustomers(input: CustomerListFilterInput = {}): Promis
 
 export async function getCustomerSummary(now = new Date()): Promise<CustomerSummary> {
   const monthStart = startOfVnMonth(now)
+  const { tiers } = await getShopSettings()
   const [totalCustomers, newThisMonth, buyers] = await Promise.all([
     db.user.count({ where: { role: "CUSTOMER" } }),
     db.user.count({ where: { role: "CUSTOMER", createdAt: { gte: monthStart } } }),
-    db.$queryRaw<{ buyers: number; repeaters: number; vip: number }[]>`
+    db.$queryRaw<{ buyers: number; repeaters: number; goldplus: number }[]>`
       SELECT COUNT(*)::int AS buyers,
              COUNT(*) FILTER (WHERE t.cnt >= 2)::int AS repeaters,
-             COUNT(*) FILTER (WHERE t.spend >= ${VIP_SPEND_THRESHOLD}::bigint)::int AS vip
+             COUNT(*) FILTER (WHERE t.spend >= ${tiers.GOLD.minSpend}::bigint)::int AS goldplus
       FROM (
-        SELECT o."userId", COUNT(*) AS cnt, SUM(o."total") AS spend
+        SELECT o."userId", COUNT(*) AS cnt,
+               COALESCE(SUM(o."total") FILTER (WHERE o."paymentStatus" = 'PAID' OR o."status" = 'DELIVERED'), 0) AS spend
         FROM "Order" o
         JOIN "User" u ON u."id" = o."userId"
         WHERE u."role" = 'CUSTOMER' AND o."status" <> 'CANCELLED'
         GROUP BY o."userId"
       ) t`,
   ])
-  const { buyers: buyerCount, repeaters, vip } = buyers[0] ?? { buyers: 0, repeaters: 0, vip: 0 }
+  const { buyers: buyerCount, repeaters, goldplus } = buyers[0] ?? { buyers: 0, repeaters: 0, goldplus: 0 }
   return {
     totalCustomers,
     newThisMonth,
-    vipCount: vip,
+    goldPlusCount: goldplus,
     repurchaseRate: buyerCount === 0 ? 0 : Math.round((repeaters / buyerCount) * 1000) / 10,
   }
 }
@@ -217,7 +212,7 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail>
       createdAt: true,
       addresses: {
         orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
-        select: { id: true, fullName: true, phone: true, street: true, ward: true, district: true, province: true, isDefault: true },
+        select: { id: true, fullName: true, phone: true, street: true, ward: true, province: true, isDefault: true },
       },
       orders: {
         orderBy: { createdAt: "desc" },
@@ -230,7 +225,7 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail>
   if (user.role !== "CUSTOMER") throw notACustomer()
 
   const stats = (await orderStatsFor([id])).get(id)
-  return { ...toListItem(user, stats), addresses: user.addresses, recentOrders: user.orders }
+  return { ...toListItem((await getShopSettings()).tiers, user, stats), addresses: user.addresses, recentOrders: user.orders }
 }
 
 const notFound = () => new AdminCustomerError("CUSTOMER_NOT_FOUND", "Không tìm thấy khách hàng")
@@ -278,7 +273,7 @@ export async function createCustomerByAdmin(input: CreateCustomerInput): Promise
       data: { email: data.email, name: data.name, phone: data.phone, passwordHash, role: "CUSTOMER", status: "ACTIVE" },
       select: { id: true, name: true, email: true, phone: true, status: true, createdAt: true },
     })
-    return toListItem(user, undefined)
+    return toListItem((await getShopSettings()).tiers, user, undefined)
   } catch (e) {
     // Hai request cùng email chạy song song: unique index là chốt chặn cuối.
     if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002") throw taken()

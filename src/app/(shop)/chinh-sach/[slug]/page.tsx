@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { defaultFreeShippingThreshold } from "@/lib/shop-settings"
 import { getPolicy, POLICIES } from "@/lib/policies"
+import { getShopSettings } from "@/server/services/shop-settings.service"
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -15,7 +17,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PolicyPage({ params }: Props) {
-  const policy = getPolicy((await params).slug)
+  const settings = await getShopSettings()
+  const policy = getPolicy((await params).slug, { freeShippingFrom: defaultFreeShippingThreshold(settings), flatShippingFee: settings.flatShippingFee })
   if (!policy) notFound()
 
   return (
@@ -28,8 +31,8 @@ export default async function PolicyPage({ params }: Props) {
             aria-current={p.slug === policy.slug ? "page" : undefined}
             className={
               p.slug === policy.slug
-                ? "rounded-full bg-ink px-4 py-1.5 text-label font-bold text-white"
-                : "rounded-full bg-secondary px-4 py-1.5 text-label font-bold hover:bg-border"
+                ? "rounded-none bg-ink px-4 py-1.5 text-label font-semibold text-white"
+                : "rounded-none bg-secondary px-4 py-1.5 text-label font-semibold hover:bg-border"
             }
           >
             {p.title}
@@ -38,13 +41,13 @@ export default async function PolicyPage({ params }: Props) {
       </nav>
 
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold">{policy.title}</h1>
+        <h1 className="text-4xl font-semibold md:text-5xl">{policy.title}</h1>
         <p className="text-muted-foreground">{policy.intro}</p>
       </header>
 
       {policy.sections.map((s) => (
         <section key={s.heading} className="space-y-3">
-          <h2 className="text-lg font-bold">{s.heading}</h2>
+          <h2 className="text-2xl font-semibold">{s.heading}</h2>
           <ul className="list-disc space-y-2 pl-5">
             {s.body.map((line) => (
               <li key={line}>{line}</li>

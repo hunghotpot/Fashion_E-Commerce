@@ -47,7 +47,7 @@ export default async function AdminDashboardPage() {
           value={String(stats.stock.lowCount)}
           unit="biến thể sắp hết"
           chip={stats.stock.lowCount > 0 || stats.stock.outOfStockCount > 0 ? "Chú ý" : "Ổn định"}
-          chipTone={stats.stock.lowCount > 0 || stats.stock.outOfStockCount > 0 ? "brand" : "info"}
+          chipTone={stats.stock.lowCount > 0 || stats.stock.outOfStockCount > 0 ? "warning" : "info"}
         />
       </StatGrid>
 

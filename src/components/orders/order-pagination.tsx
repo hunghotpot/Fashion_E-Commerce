@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { cn } from "cn"
+import { cn } from "@/lib/cn"
 import { serializeOrderListFilters, type OrderListFilters } from "@/lib/validators/order-list"
 
 function pageItems(page: number, count: number): (number | "…")[] {
@@ -13,7 +13,7 @@ function pageItems(page: number, count: number): (number | "…")[] {
   return out
 }
 
-// Figma "Pagination": dòng "Hiển thị a - b trên tổng số N đơn" bên trái, ô số trang vuông bo nhẹ + mũi tên → bên phải.
+// Phân trang: dòng "Hiển thị a - b trên tổng số N đơn" bên trái, ô số trang vuông bo nhẹ + mũi tên → bên phải.
 export function OrderPagination({
   filters,
   total,
@@ -30,7 +30,7 @@ export function OrderPagination({
     const qs = serializeOrderListFilters({ ...filters, page }).toString()
     return qs ? `/account/orders?${qs}` : "/account/orders"
   }
-  const box = "grid size-9 place-items-center rounded-md border text-label font-bold transition-colors"
+  const box = "grid size-9 place-items-center rounded-md border text-label font-semibold transition-colors"
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
@@ -40,7 +40,7 @@ export function OrderPagination({
       {pageCount > 1 && (
         <nav aria-label="Phân trang" className="flex items-center gap-2">
           {filters.page > 1 && (
-            <Link href={href(filters.page - 1)} aria-label="Trang trước" className={cn(box, "border-border bg-white text-muted-foreground hover:border-ink")}>
+            <Link href={href(filters.page - 1)} scroll={false} aria-label="Trang trước" className={cn(box, "border-border bg-card text-muted-foreground hover:border-ink")}>
               ←
             </Link>
           )}
@@ -53,15 +53,16 @@ export function OrderPagination({
               <Link
                 key={p}
                 href={href(p)}
+                scroll={false}
                 aria-current={p === filters.page ? "page" : undefined}
-                className={cn(box, p === filters.page ? "border-ink bg-ink text-white" : "border-border bg-white text-muted-foreground hover:border-ink")}
+                className={cn(box, p === filters.page ? "border-ink bg-ink text-white" : "border-border bg-card text-muted-foreground hover:border-ink")}
               >
                 {p}
               </Link>
             )
           )}
           {filters.page < pageCount && (
-            <Link href={href(filters.page + 1)} aria-label="Trang sau" className={cn(box, "border-border bg-white text-muted-foreground hover:border-ink")}>
+            <Link href={href(filters.page + 1)} scroll={false} aria-label="Trang sau" className={cn(box, "border-border bg-card text-muted-foreground hover:border-ink")}>
               →
             </Link>
           )}

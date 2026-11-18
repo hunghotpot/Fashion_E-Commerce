@@ -6,7 +6,7 @@ const VARIANT = {
   success: "success",
   warning: "warning",
   info: "info",
-  danger: "brand",
+  danger: "danger",
   neutral: "default",
   dark: "dark",
 } as const

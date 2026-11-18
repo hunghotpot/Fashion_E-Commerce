@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest"
-import { formatOrderCode, orderDayKey, transferContent } from "./order"
+import { paymentConfirmedMessage } from "./notification"
+import { formatOrderCode, orderDayKey, paymentDeadline, transferContent } from "./order"
 import { calculateShippingFee } from "./shipping"
+
+describe("paymentDeadline", () => {
+  const created = new Date("2026-11-17T03:00:00Z")
+  it("VNPay 15 phút, chuyển khoản 24 giờ, COD không có hạn", () => {
+    expect(paymentDeadline("VNPAY", created)?.toISOString()).toBe("2026-11-17T03:15:00.000Z")
+    expect(paymentDeadline("BANK_TRANSFER", created)?.toISOString()).toBe("2026-11-18T03:00:00.000Z")
+    expect(paymentDeadline("COD", created)).toBeNull()
+  })
+})
+
+describe("paymentConfirmedMessage", () => {
+  it("có mã đơn, và dòng tổng tiền khi có tóm tắt", () => {
+    expect(paymentConfirmedMessage("FS-1").title).toContain("FS-1")
+    expect(paymentConfirmedMessage("FS-1", { total: 100_000, itemCount: 2 }).body).toContain("2 sản phẩm")
+  })
+})
 
 describe("calculateShippingFee", () => {
   it("đồng giá 30.000đ dưới 500.000đ, miễn phí từ 500.000đ", () => {

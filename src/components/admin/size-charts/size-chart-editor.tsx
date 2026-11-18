@@ -118,7 +118,7 @@ export function SizeChartEditor({ categoryId, categoryName, target, onClose }: {
             <thead>
               <tr>
                 {COLUMNS.map((c) => (
-                  <th key={c.key} scope="col" className="px-1 pb-1 text-left text-xs font-bold text-muted-foreground">
+                  <th key={c.key} scope="col" className="px-1 pb-1 text-left text-xs font-semibold text-muted-foreground">
                     {c.label}
                   </th>
                 ))}
