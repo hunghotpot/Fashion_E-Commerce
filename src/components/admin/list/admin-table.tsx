@@ -1,3 +1,4 @@
+import { PendingFrame } from "@/components/layout/pending-frame"
 import { cn } from "@/lib/cn"
 
 /*
@@ -16,7 +17,11 @@ const HEAD = "px-3 py-3 text-left text-xs font-semibold tracking-wide whitespace
 
 /** Khung thẻ bo lớn chứa bảng và phân trang. */
 export function ListCard({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("rounded-3xl border border-border bg-card p-4 sm:p-5", className)}>{children}</div>
+  return (
+    <div className={cn("rounded-3xl border border-border bg-card p-4 sm:p-5", className)}>
+      <PendingFrame>{children}</PendingFrame>
+    </div>
+  )
 }
 
 /** Tiêu đề khối danh sách ("Danh Sách Khách Hàng") + nội dung bên dưới. */

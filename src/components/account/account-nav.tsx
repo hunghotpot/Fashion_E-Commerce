@@ -1,9 +1,11 @@
 ﻿"use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { CircleHelpIcon, MapPinIcon, ShoppingBagIcon, TicketPercentIcon, UserRoundIcon } from "lucide-react"
 import { cn } from "@/lib/cn"
+import { useFilterPending } from "@/stores/product-filter-pending"
 
 interface NavItem {
   href: string
@@ -17,6 +19,17 @@ interface NavItem {
 // Mục đang chọn nền ink + chấm trắng; các mục khác icon viền; số đơn hàng ở badge bên phải.
 export function AccountNav({ orderCount }: { orderCount: number }) {
   const pathname = usePathname()
+  const setPending = useFilterPending((s) => s.setPending)
+  // Mục vừa bấm (và trang đang đứng lúc bấm): đổi trạng thái "đang chọn" ngay, không chờ server trả trang mới.
+  const [clicked, setClicked] = useState<{ href: string; from: string } | null>(null)
+  const target = clicked && clicked.from === pathname ? clicked.href : pathname
+  useEffect(() => {
+    setPending(target !== pathname)
+    if (target === pathname) return
+    const t = setTimeout(() => setPending(false), 10_000) // phòng khi chuyển trang lỗi: không mờ mãi
+    return () => clearTimeout(t)
+  }, [target, pathname, setPending])
+  useEffect(() => () => setPending(false), [setPending])
   const items: NavItem[] = [
     { href: "/account/profile", label: "Thông tin tài khoản", icon: UserRoundIcon },
     { href: "/account/addresses", label: "Sổ địa chỉ", icon: MapPinIcon },
@@ -28,7 +41,7 @@ export function AccountNav({ orderCount }: { orderCount: number }) {
   return (
     <nav aria-label="Tài khoản" className="flex flex-col gap-2">
       {items.map(({ href, label, icon: Icon, count, soon }) => {
-        const active = pathname === href
+        const active = target === href
         const className = cn(
           "flex h-[52px] items-center gap-4 rounded-xl px-5 text-sm font-semibold transition-colors",
           active ? "bg-ink text-white" : "text-sidebar-foreground",
@@ -51,7 +64,16 @@ export function AccountNav({ orderCount }: { orderCount: number }) {
             {content}
           </span>
         ) : (
-          <Link key={href} href={href} aria-current={active ? "page" : undefined} className={className}>
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={className}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0 || href === pathname) return
+              setClicked({ href, from: pathname })
+            }}
+          >
             {content}
           </Link>
         )

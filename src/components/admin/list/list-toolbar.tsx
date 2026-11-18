@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/cn"
 import { Input } from "@/components/ui/input"
+import { useFilterPending } from "@/stores/product-filter-pending"
 
 export interface ToolbarFilter {
   value: string
@@ -16,6 +17,8 @@ const SEARCH_DEBOUNCE_MS = 350
  * Thanh công cụ của màn danh sách: ô tìm kiếm, hàng nút lọc (nút đang chọn nền ink), chỗ đặt nút hành động bên phải.
  * Trạng thái nằm trong URL: ?q= và ?<filterParam>= (mặc định "status"); đổi bộ lọc luôn đưa về trang 1.
  * Trang (server) đọc lại searchParams và tự validate bằng Zod của nó.
+ * Bấm nút lọc: nút đổi trạng thái NGAY (optimistic) và bảng bên dưới mờ + thanh tiến độ trong lúc chờ server (xem PendingFrame),
+ * bấm lại đúng nút đang chọn thì bỏ qua; nhờ vậy người dùng không phải bấm nhiều lần.
  */
 export function ListToolbar({
   placeholder,
@@ -36,6 +39,9 @@ export function ListToolbar({
   const params = useSearchParams()
   const urlQ = params.get("q") ?? ""
   const current = params.get(filterParam) ?? ""
+  const [isPending, startTransition] = useTransition()
+  const [shown, setShown] = useOptimistic(current)
+  const setPending = useFilterPending((s) => s.setPending)
 
   const [q, setQ] = useState(urlQ)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -43,8 +49,10 @@ export function ListToolbar({
   // Đồng bộ khi URL đổi từ nơi khác (vd ô tìm kiếm ở header chuyển sang ?q=).
   useEffect(() => setQ(urlQ), [urlQ])
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), [])
+  useEffect(() => setPending(isPending), [isPending, setPending])
+  useEffect(() => () => setPending(false), [setPending])
 
-  function navigate(patch: Record<string, string>) {
+  function navigate(patch: Record<string, string>, optimisticFilter?: string) {
     const next = new URLSearchParams(params.toString())
     for (const [k, v] of Object.entries(patch)) {
       if (v) next.set(k, v)
@@ -52,7 +60,15 @@ export function ListToolbar({
     }
     next.delete("page")
     const qs = next.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    startTransition(() => {
+      if (optimisticFilter !== undefined) setShown(optimisticFilter)
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    })
+  }
+
+  function pick(value: string) {
+    if (value === shown) return
+    navigate({ [filterParam]: value }, value)
   }
 
   function onSearch(value: string) {
@@ -90,16 +106,16 @@ export function ListToolbar({
 
       {filters && filters.length > 0 && (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Lọc theo trạng thái">
-          <button type="button" aria-pressed={current === ""} className={pill(current === "")} onClick={() => navigate({ [filterParam]: "" })}>
+          <button type="button" aria-pressed={shown === ""} className={pill(shown === "")} onClick={() => pick("")}>
             {allLabel}
           </button>
           {filters.map((f) => (
             <button
               key={f.value}
               type="button"
-              aria-pressed={current === f.value}
-              className={pill(current === f.value)}
-              onClick={() => navigate({ [filterParam]: f.value })}
+              aria-pressed={shown === f.value}
+              className={pill(shown === f.value)}
+              onClick={() => pick(f.value)}
             >
               {f.label}
             </button>
